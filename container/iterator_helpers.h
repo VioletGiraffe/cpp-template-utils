@@ -9,6 +9,7 @@ struct const_forward_iterator_wrapper
 	{
 		assert(valid());
 		_iterator = it;
+		return *this;
 	}
 
 	const_forward_iterator_wrapper& operator++()
