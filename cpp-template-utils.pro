@@ -8,6 +8,7 @@ CONFIG += staticlib
 CONFIG -= qt
 
 HEADERS += \
-    container/algorithms.h \
-    container/set_operations.h \
-    container/iterator_helpers.h
+    math/math.hpp \
+    container/set_operations.hpp \
+    container/iterator_helpers.hpp \
+    container/algorithms.hpp
