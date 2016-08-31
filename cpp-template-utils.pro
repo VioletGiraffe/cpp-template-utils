@@ -11,4 +11,5 @@ HEADERS += \
     math/math.hpp \
     container/set_operations.hpp \
     container/iterator_helpers.hpp \
-    container/algorithms.hpp
+    container/algorithms.hpp \
+    utility/on_scope_exit.hpp
