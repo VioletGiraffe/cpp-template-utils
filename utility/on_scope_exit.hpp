@@ -6,13 +6,15 @@ namespace detail {
 class OnScopeExitExecutor
 {
 public:
-	explicit OnScopeExitExecutor(std::function<void()>&& code) : _code(std::move(code))
+	inline explicit OnScopeExitExecutor(std::function<void()>&& code) : _code(std::move(code))
 	{}
 
-	~OnScopeExitExecutor()
+	inline ~OnScopeExitExecutor()
 	{
 		_code();
 	}
+
+	OnScopeExitExecutor& operator=(const OnScopeExitExecutor&) = delete;
 
 private:
 	const std::function<void()> _code;
