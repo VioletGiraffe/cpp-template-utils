@@ -12,4 +12,5 @@ HEADERS += \
     container/set_operations.hpp \
     container/iterator_helpers.hpp \
     container/algorithms.hpp \
-    utility/on_scope_exit.hpp
+    utility/on_scope_exit.hpp \
+    utility/callback_caller.hpp
