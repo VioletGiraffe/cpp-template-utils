@@ -6,8 +6,6 @@
 #include <algorithm>
 #include <vector>
 
-#define INVOKE_CALLBACK(callback, ...) {for (auto& s: _subscribers) {s->callback(__VA_ARGS__);}}
-
 template <class Interface>
 class CallbackCaller {
 public:
@@ -20,6 +18,14 @@ public:
 	void removeSubscriber(Interface* instance)
 	{
 		ContainerAlgorithms::erase_all_occurrences(_subscribers, instance);
+	}
+
+protected:
+	template <typename MethodPointer, typename ...Args>
+	void invokeCallback(MethodPointer methodPtr, Args... args)
+	{
+		for (Interface* subscriber: _subscribers)
+			(subscriber->*methodPtr)(std::forward<Args>(args)...);
 	}
 
 protected:
