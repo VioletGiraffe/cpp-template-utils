@@ -87,6 +87,12 @@ ResultType squared(T value)
 	return (ResultType)value * (ResultType)value;
 }
 
+template <typename T>
+bool isInRange(const T value, const T lowerBound, const T upperBound)
+{
+	return value >= lowerBound && value <= upperBound;
+}
+
 namespace detail
 {
 	template<typename... Args> void iterate_template_pack(Args&&...) {}
