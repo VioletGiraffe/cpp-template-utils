@@ -5,6 +5,9 @@
 template<typename Container>
 struct const_forward_iterator_wrapper
 {
+	const_forward_iterator_wrapper() {}
+	const_forward_iterator_wrapper(const Container& container, const typename Container::const_iterator& iterator): _iterator(iterator), _container(&container) {}
+
 	const_forward_iterator_wrapper& operator=(const typename Container::const_iterator it)
 	{
 		assert(valid());
