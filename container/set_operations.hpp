@@ -1,7 +1,5 @@
 #pragma once
 
-#include "iterator_helpers.hpp"
-
 #include <algorithm>
 #include <deque>
 #include <functional>
@@ -60,28 +58,28 @@ setTheoreticDifference(
 template <class ContainerType>
 struct diff
 {
-	std::deque<const_forward_iterator_wrapper<ContainerType>> common_elements;
-	std::deque<const_forward_iterator_wrapper<ContainerType>> elements_from_a_not_in_b;
-	std::deque<const_forward_iterator_wrapper<ContainerType>> elements_from_b_not_in_a;
+	std::deque<typename ContainerType::value_type> common_elements;
+	std::deque<typename ContainerType::value_type> elements_from_a_not_in_b;
+	std::deque<typename ContainerType::value_type> elements_from_b_not_in_a;
 };
 
-template <class ContainerType, class Comparator = std::less<typename ContainerType::value_type>>
-diff<ContainerType> calculateDiff(const ContainerType& a, const ContainerType& b)
+template <class ContainerType1, class ContainerType2>
+diff<ContainerType1> calculateDiff(const ContainerType1& a, const ContainerType2& b)
 {
-	diff<ContainerType> diff;
+	diff<ContainerType1> diff;
 
-	for (auto a_iterator = a.cbegin(), a_end = a.cend(); a_iterator < a_end; ++a_iterator)
+	for (const auto& item_a: a)
 	{
-		if (std::find(std::begin(b), std::end(b), *a_iterator) != std::end(b))
-			diff.common_elements.emplace_back(a, a_iterator);
+		if (std::find(std::begin(b), std::end(b), item_a) != std::end(b))
+			diff.common_elements.push_back(item_a);
 		else
-			diff.elements_from_a_not_in_b.emplace_back(a, a_iterator);
+			diff.elements_from_a_not_in_b.push_back(item_a);
 	}
 
-	for (auto b_iterator = b.cbegin(), b_end = b.cend(); b_iterator < b_end; ++b_iterator)
+	for (const auto& item_b : b)
 	{
-		if (std::find(std::begin(a), std::end(a), *b_iterator) == std::end(b))
-			diff.elements_from_b_not_in_a.emplace_back(b, b_iterator);
+		if (std::find(std::begin(a), std::end(a), item_b) == std::end(b))
+			diff.elements_from_b_not_in_a.push_back(item_b);
 	}
 
 	return diff;
