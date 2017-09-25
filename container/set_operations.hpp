@@ -116,7 +116,7 @@ diff<ContainerType1> calculateDiff(const ContainerType1& a, const ContainerType2
 
 	for (const auto& item_b : b)
 	{
-		if (std::find(cbegin_to_end(a), item_b) == std::end(b))
+		if (std::find(cbegin_to_end(a), item_b) == std::end(a))
 			diff.elements_from_b_not_in_a.push_back(item_b);
 	}
 
