@@ -1,8 +1,11 @@
 #pragma once
 
+#include "macro_utils.h"
+
 #include <functional>
 
 namespace detail {
+
 class OnScopeExitExecutor
 {
 public:
@@ -19,6 +22,7 @@ public:
 private:
 	const std::function<void()> _code;
 };
+
 }
 
-#define EXEC_ON_SCOPE_EXIT(convertible_to_std_function) detail::OnScopeExitExecutor onScopeExit_##__FUNCTION__##__FILE__##__LINE__(convertible_to_std_function);
+#define EXEC_ON_SCOPE_EXIT detail::OnScopeExitExecutor CONCAT_EXPANDED_ARGUMENTS_2(onScopeExit_, __LINE__)
