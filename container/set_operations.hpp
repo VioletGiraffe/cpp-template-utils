@@ -94,17 +94,17 @@ setTheoreticDifference(
 }
 
 template <class ContainerType>
-struct diff
+struct Diff
 {
 	std::deque<typename ContainerType::value_type> common_elements;
 	std::deque<typename ContainerType::value_type> elements_from_a_not_in_b;
 	std::deque<typename ContainerType::value_type> elements_from_b_not_in_a;
 };
 
-template <class ContainerType1, class ContainerType2>
-diff<ContainerType1> calculateDiff(const ContainerType1& a, const ContainerType2& b)
+template <class ContainerType1, class ContainerType2, class ResultContainerType = ContainerType1>
+Diff<ResultContainerType> calculateDiff(const ContainerType1& a, const ContainerType2& b)
 {
-	diff<ContainerType1> diff;
+	Diff<ResultContainerType> diff;
 
 	for (const auto& item_a: a)
 	{
