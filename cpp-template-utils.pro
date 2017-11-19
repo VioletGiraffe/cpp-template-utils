@@ -14,4 +14,5 @@ HEADERS += \
     container/algorithms.hpp \
     utility/on_scope_exit.hpp \
     utility/callback_caller.hpp \
-    utility/macro_utils.h
+    utility/macro_utils.h \
+    container/std_container_helpers.hpp

@@ -1,15 +1,13 @@
 #pragma once
 
+#include "std_container_helpers.hpp"
+
 #include <algorithm>
-#include <deque>
 #include <functional>
 #include <iterator>
 #include <numeric>
 #include <set>
 #include <type_traits>
-
-#define begin_to_end(container) std::begin(container), std::end(container)
-#define cbegin_to_end(container) std::cbegin(container), std::cend(container)
 
 namespace SetOperations {
 
@@ -96,9 +94,9 @@ setTheoreticDifference(
 template <class ContainerType>
 struct Diff
 {
-	std::deque<typename ContainerType::value_type> common_elements;
-	std::deque<typename ContainerType::value_type> elements_from_a_not_in_b;
-	std::deque<typename ContainerType::value_type> elements_from_b_not_in_a;
+	ContainerType common_elements;
+	ContainerType elements_from_a_not_in_b;
+	ContainerType elements_from_b_not_in_a;
 };
 
 template <class ContainerType1, class ContainerType2, class ResultContainerType = ContainerType1>
@@ -108,16 +106,16 @@ Diff<ResultContainerType> calculateDiff(const ContainerType1& a, const Container
 
 	for (const auto& item_a: a)
 	{
-		if (std::find(cbegin_to_end(b), item_a) != std::end(b))
-			diff.common_elements.push_back(item_a);
-		else
-			diff.elements_from_a_not_in_b.push_back(item_a);
+		if (container_aware_find(b, item_a) == std::end(b))
+			add_item(diff.elements_from_a_not_in_b, item_a);
 	}
 
 	for (const auto& item_b : b)
 	{
-		if (std::find(cbegin_to_end(a), item_b) == std::end(a))
-			diff.elements_from_b_not_in_a.push_back(item_b);
+		if (container_aware_find(a, item_b) == std::end(a))
+			add_item(diff.elements_from_b_not_in_a, item_b);
+		else
+			add_item(diff.common_elements, item_b);
 	}
 
 	return diff;
