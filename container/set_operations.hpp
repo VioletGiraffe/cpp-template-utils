@@ -99,7 +99,7 @@ struct Diff
 	ContainerType elements_from_b_not_in_a;
 };
 
-template <class ContainerType1, class ContainerType2, class ResultContainerType = ContainerType1>
+template <class ContainerType1, class ContainerType2, class ResultContainerType = ContainerType2>
 Diff<ResultContainerType> calculateDiff(const ContainerType1& a, const ContainerType2& b)
 {
 	Diff<ResultContainerType> diff;
