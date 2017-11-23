@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <set>
 #include <type_traits>
 
