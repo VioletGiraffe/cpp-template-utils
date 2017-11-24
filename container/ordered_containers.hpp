@@ -23,12 +23,12 @@ private:
 };
 
 template <class ContainerType, typename Comparator> template <typename T>
-typename typename ContainerType::iterator ordered_container<ContainerType, Comparator>::ordered_container::find(const T& value)
+typename ContainerType::iterator ordered_container<ContainerType, Comparator>::ordered_container::find(const T& value)
 {
 	assert(_sorted);
 
-	const auto end_iterator = end();
-	const auto it = std::lower_bound(begin(), end_iterator, value, Comparator());
+	const auto end_iterator = ContainerType::end();
+	const auto it = std::lower_bound(ContainerType::begin(), end_iterator, value, Comparator());
 	return it != end_iterator && Comparator()(value, *it) == false ? it : end_iterator;
 }
 
@@ -37,8 +37,8 @@ std::pair<typename ContainerType::iterator, bool> ordered_container<ContainerTyp
 {
 	assert(_sorted);
 
-	const auto end_iterator = end();
-	auto it = std::lower_bound(begin(), end_iterator, value, Comparator());
+	const auto end_iterator = ContainerType::end();
+	auto it = std::lower_bound(ContainerType::begin(), end_iterator, value, Comparator());
 	if (it == end_iterator || Comparator()(value, *it) == true) // Item not yet present in the container
 	{
 		insert(value, it);
@@ -49,9 +49,9 @@ std::pair<typename ContainerType::iterator, bool> ordered_container<ContainerTyp
 }
 
 
-template <class ContainerType, typename Comparator /*= std::less<> /* transparent comparator */>
+template <class ContainerType, typename Comparator /*= std::less<> */>
 void ordered_container<ContainerType, Comparator>::sort()
 {
-	std::sort(begin(), end(), Comparator());
+	std::sort(ContainerType::begin(), ContainerType::end(), Comparator());
 	_sorted = true;
 }
