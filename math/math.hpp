@@ -30,18 +30,21 @@ T floor(T value, int numDecimalDigits)
 template <typename OutType, typename InType>
 typename std::enable_if<std::is_integral<InType>::value, OutType>::type round(InType value)
 {
+	static_assert(std::is_integral<InType>::value, "This function is only intended for integer values");
 	return static_cast<OutType>(value);
 }
 
 template <typename OutType, typename InType>
 typename std::enable_if<std::is_floating_point<InType>::value && std::is_floating_point<OutType>::value, OutType>::type round(InType value, bool performRounding = true)
 {
+	static_assert(std::is_floating_point<InType>::value, "This function is only intended for floating-point values");
 	return performRounding ? static_cast<OutType>(::round(value)) : static_cast<OutType>(value);
 }
 
 template <typename OutType, typename InType>
 typename std::enable_if<std::is_integral<OutType>::value && std::is_floating_point<InType>::value, OutType>::type round(InType value)
 {
+	static_assert(std::is_floating_point<InType>::value, "This function is only intended for floating-point values");
 	const OutType integer = OutType(value + InType(0.5));
 	return integer;
 }
@@ -72,7 +75,7 @@ typename std::enable_if<std::is_floating_point<T>::value, T>::type abs(T value)
 template<typename T>
 T clamp(T lowerBoundary, T value, T upperBoundary)
 {
-	return std::min(upperBoundary, std::max(lowerBoundary, value));
+	return value > upperBoundary ? value : (value < lowerBoundary ? lowerBoundary : value);
 }
 
 template <typename T>
