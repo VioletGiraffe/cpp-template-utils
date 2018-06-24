@@ -15,9 +15,9 @@ namespace SetOperations {
 // For a container of containers, returns the range containing the longest starting sequence that's common for all the child sets (or empty range)
 //
 
-
-template <class OrderedSetType, template<class> class SupersetType>
-OrderedSetType longestCommonStart(const SupersetType<OrderedSetType>& superset)
+template <template <typename...> class SupersetType,
+		  typename OrderedSetType, typename ... OtherTypes>
+OrderedSetType longestCommonStart (SupersetType<OrderedSetType, OtherTypes...> const & superset)
 {
 	if (superset.empty())
 		return OrderedSetType();
