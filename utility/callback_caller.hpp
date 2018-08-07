@@ -21,7 +21,7 @@ public:
 	}
 
 	template <typename MethodPointer, typename ...Args>
-	void invokeCallback(MethodPointer methodPtr, Args... args)
+	void invokeCallback(MethodPointer methodPtr, Args... args) const
 	{
 		for (Interface* subscriber: _subscribers)
 			(subscriber->*methodPtr)(std::forward<Args>(args)...);
