@@ -20,7 +20,6 @@ public:
 		ContainerAlgorithms::erase_all_occurrences(_subscribers, instance);
 	}
 
-protected:
 	template <typename MethodPointer, typename ...Args>
 	void invokeCallback(MethodPointer methodPtr, Args... args)
 	{
