@@ -18,4 +18,5 @@ HEADERS += \
 	utility/callback_caller.hpp \
 	utility/macro_utils.h \
 	container/std_container_helpers.hpp \
-	container/ordered_containers.hpp
+	container/ordered_containers.hpp \
+    container/string_helpers.hpp
