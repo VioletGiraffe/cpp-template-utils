@@ -19,4 +19,5 @@ HEADERS += \
 	utility/macro_utils.h \
 	container/std_container_helpers.hpp \
 	container/ordered_containers.hpp \
-    container/string_helpers.hpp
+    container/string_helpers.hpp \
+    random/crandomnumbergenerator.h
