@@ -17,7 +17,9 @@ HEADERS += \
 	utility/on_scope_exit.hpp \
 	utility/callback_caller.hpp \
 	utility/macro_utils.h \
+	utility/constexpr_algorithms.hpp \
 	container/std_container_helpers.hpp \
 	container/ordered_containers.hpp \
-    container/string_helpers.hpp \
-    random/crandomnumbergenerator.h
+	container/string_helpers.hpp \
+	random/crandomnumbergenerator.h \
+	tuple/tuple_helpers.hpp
