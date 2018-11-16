@@ -7,7 +7,7 @@ win*{
 CONFIG += staticlib
 CONFIG -= qt
 
-CONFIG += strict_c++ c++14
+CONFIG += strict_c++ c++17
 
 HEADERS += \
 	math/math.hpp \
