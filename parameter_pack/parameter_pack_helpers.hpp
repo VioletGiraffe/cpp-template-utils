@@ -26,4 +26,11 @@ namespace pack {
 	auto value_by_index(Args&&... args) noexcept {
 		return std::get<index>(std::forward_as_tuple(std::forward<Args>(args)...));
 	}
+
+	template <typename Functor, class Arg, class... Args>
+	void apply(Functor&& f, Arg&& a, Args&&... args) {
+		f(std::forward<Arg>(a));
+		if constexpr (sizeof...(args) > 0)
+			apply(std::forward<Functor>(f), std::forward<Args>(args)...);
+	}
 }
