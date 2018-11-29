@@ -23,7 +23,7 @@ namespace pack {
 	constexpr size_t index_for_type_v = detail::IndexForType<0, T, Args...>::value;
 
 	template <size_t index, typename... Args>
-	auto value_by_index(Args&&... args) noexcept {
+	constexpr auto value_by_index(Args&&... args) noexcept {
 		return std::get<index>(std::forward_as_tuple(std::forward<Args>(args)...));
 	}
 
