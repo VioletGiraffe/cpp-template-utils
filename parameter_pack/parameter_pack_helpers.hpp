@@ -1,6 +1,10 @@
 #pragma once
 
+#include "../utility/constexpr_algorithms.hpp"
+#include "../utility/template_magic.hpp"
+
 #include <tuple>
+#include <type_traits>
 
 namespace pack {
 	namespace detail {
@@ -23,6 +27,9 @@ namespace pack {
 	constexpr size_t index_for_type_v = detail::IndexForType<0, T, Args...>::value;
 
 	template <size_t index, typename... Args>
+	using type_by_index = std::tuple_element_t<index, std::tuple<Args...>>;
+
+	template <size_t index, typename... Args>
 	constexpr auto value_by_index(Args&&... args) noexcept {
 		return std::get<index>(std::forward_as_tuple(std::forward<Args>(args)...));
 	}
@@ -32,5 +39,12 @@ namespace pack {
 		f(std::forward<Arg>(a));
 		if constexpr (sizeof...(args) > 0)
 			apply(std::forward<Functor>(f), std::forward<Args>(args)...);
+	}
+
+	template <typename... Args, typename Functor>
+	void for_type(Functor&& f) {
+		static_for<0, sizeof...(Args)>([f{ std::forward<Functor>(f) }](auto i) {
+			f(type_wrapper<type_by_index<decltype(i)::value, Args...>>{});
+		});
 	}
 }
