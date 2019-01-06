@@ -55,3 +55,26 @@ namespace tuple {
 		return detail::IndexForType<0, T, Args...>::value;
 	}
 }
+
+namespace tuple {
+	namespace detail {
+		template <class Tuple, class F, size_t I>
+		void invoke(Tuple &tuple, F f)
+		{
+			f(std::get<I>(tuple));
+		}
+
+		template <class Tuple, class F, size_t... I>
+		constexpr auto make_functor(std::index_sequence<I...>)
+		{
+			return std::array<void (*)(Tuple &, F), sizeof...(I)>{invoke<Tuple, F, I>...};
+		}
+	}
+
+	template <class Tuple, class F>
+	void visit(Tuple &t, size_t index, F f)
+	{
+		constexpr auto functors = detail::make_functor<Tuple, F>(std::make_index_sequence<std::tuple_size<Tuple>::value>());
+		return functors[index](t, f);
+	}
+}
