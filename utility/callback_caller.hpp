@@ -2,8 +2,8 @@
 
 #include "../container/algorithms.hpp"
 
-#include <assert.h>
 #include <algorithm>
+#include <assert.h>
 #include <vector>
 
 template <class Interface>
