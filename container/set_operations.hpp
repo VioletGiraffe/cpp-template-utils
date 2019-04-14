@@ -3,7 +3,6 @@
 #include "std_container_helpers.hpp"
 
 #include <algorithm>
-#include <functional>
 #include <iterator>
 #include <map>
 #include <numeric>
@@ -17,11 +16,11 @@ namespace SetOperations {
 //
 
 template <template <typename...> class SupersetType,
-		  typename OrderedSetType, typename ... OtherTypes>
-OrderedSetType longestCommonStart (SupersetType<OrderedSetType, OtherTypes...> const & superset)
+		  typename OrderedContainerType, typename ... OtherTypes>
+OrderedContainerType longestCommonStart(SupersetType<OrderedContainerType, OtherTypes...> const & superset)
 {
 	if (superset.empty())
-		return OrderedSetType();
+		return OrderedContainerType();
 
 	const size_t minSubsetLength = std::accumulate(cbegin_to_end(superset), std::numeric_limits<size_t>::max(), [](size_t currentMin, const auto& subset) {
 		return std::min(currentMin, (size_t)subset.size());
@@ -35,7 +34,7 @@ OrderedSetType longestCommonStart (SupersetType<OrderedSetType, OtherTypes...> c
 		{
 			if (item != *(subset->cbegin() + maxCommonSubsetLength))
 			{
-				OrderedSetType commonSubset;
+				OrderedContainerType commonSubset;
 				std::copy(subset->cbegin(), subset->cbegin() + maxCommonSubsetLength, std::back_inserter(commonSubset));
 				return commonSubset;
 			}
@@ -53,41 +52,45 @@ OrderedSetType longestCommonStart (SupersetType<OrderedSetType, OtherTypes...> c
 
 
 template <class ContainerType>
-inline ContainerType uniqueElements(const ContainerType& c)
+ContainerType uniqueElements(const ContainerType& c)
 {
 	ContainerType result;
 	std::set<typename ContainerType::value_type> helperSet;
-	std::copy_if(cbegin_to_end(c), std::back_inserter(result), [&helperSet](const typename ContainerType::value_type& element){
-		return helperSet.insert(element).second; // true if a new element was inserted
-	});
+	// Inserting into std::set to check whether or not the item is unique.
+	for (auto&& item: c)
+	{
+		const bool unique = helperSet.insert(item).second; // true if a new element was inserted
+		if (unique)
+			result.insert(result.end(), item);
+	}
 
 	return result;
 }
 
 template <typename ItemType>
-inline const std::set<ItemType>& uniqueElements(const std::set<ItemType>& set)
+const std::set<ItemType>& uniqueElements(const std::set<ItemType>& set)
 {
 	return set;
 }
 
 template <typename KeyType, typename ValueType>
-inline const std::map<KeyType, ValueType>& uniqueElements(const std::map<KeyType, ValueType>& map)
+const std::map<KeyType, ValueType>& uniqueElements(const std::map<KeyType, ValueType>& map)
 {
 	return map;
 }
 
-template <template<typename...> class OutputContainerType, class ContainerType1, class ContainerType2>
+template <template<typename...> class OutputContainerType, class ContainerType1, class ContainerType2, typename ComparatorType = std::less<>>
 OutputContainerType<typename ContainerType1::value_type, std::allocator<typename ContainerType1::value_type>>
 setTheoreticDifference(
 	ContainerType1 c1,
 	ContainerType2 c2,
-	const std::function<bool(const typename ContainerType1::value_type&, const typename ContainerType1::value_type&)>& comp = [](const typename ContainerType1::value_type& l, const typename ContainerType1::value_type& r) {return l < r;})
+	ComparatorType comp = ComparatorType{})
 {
 	OutputContainerType<typename ContainerType1::value_type, std::allocator<typename ContainerType1::value_type>> result;
 	std::sort(c1.begin(), c1.end(), comp);
 	std::sort(c2.begin(), c2.end(), comp);
 
-	std::set_difference(cbegin_to_end(c1), cbegin_to_end(c2), std::back_inserter(result), comp);
+	std::set_difference(cbegin_to_end(c1), cbegin_to_end(c2), std::inserter(result, result.end()), comp);
 
 	return result;
 }
