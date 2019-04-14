@@ -1,7 +1,7 @@
 #pragma once
 
 #include <algorithm>
-#include <functional>
+#include <utility>
 
 namespace ContainerAlgorithms {
 
@@ -15,10 +15,10 @@ inline void erase_all_occurrences(ContainerType& container, const ArgumentType& 
 	container.erase(std::remove(container.begin(), container.end(), item), container.end());
 }
 
-template <class ContainerType>
-inline void erase_if(ContainerType& container, const std::function<bool(const typename ContainerType::value_type&)>& unaryPredicate)
+template <class ContainerType, typename PredicateType>
+inline void erase_if(ContainerType& container, PredicateType&& unaryPredicate)
 {
-	container.erase(std::remove_if(container.begin(), container.end(), unaryPredicate), container.end());
+	container.erase(std::remove_if(container.begin(), container.end(), std::forward<PredicateType>(unaryPredicate)), container.end());
 }
 
 } // namespace

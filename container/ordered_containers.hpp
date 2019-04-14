@@ -6,7 +6,7 @@
 #include <assert.h>
 #include <utility>
 
-template <class ContainerType, typename Comparator = std::less<> /* transparent comparator */>
+template <class ContainerType, typename Comparator = std::less<> /* transparent (heterogenous) comparator */>
 class ordered_container : public ContainerType
 {
 public:
