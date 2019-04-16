@@ -1,7 +1,8 @@
 #pragma once
 
+#include "../parameter_pack/parameter_pack_helpers.hpp"
+
 #include <array>
-#include <assert.h>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -35,25 +36,9 @@ namespace tuple {
 }
 
 namespace tuple {
-	namespace detail {
-		// Index of the type in the tuple's list of types
-		template<size_t N, typename A, typename...Fields>
-		struct IndexForType;
-
-		template<size_t N, typename A, typename...Fields>
-		struct IndexForType<N, A, A, Fields...> {
-			enum {value = N};
-		};
-
-		template<size_t N, typename A, typename B, typename...Fields>
-		struct IndexForType<N, A, B, Fields...> {
-			enum {value = IndexForType<N + 1, A, Fields...>::value};
-		};
-	}
-
 	template <typename T, typename... Args>
 	constexpr size_t indexForType(const std::tuple<Args...>&) {
-		return detail::IndexForType<0, T, Args...>::value;
+		return ::pack::index_for_type_v<T, Args...>;
 	}
 }
 
