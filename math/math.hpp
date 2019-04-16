@@ -1,4 +1,5 @@
 #pragma once
+#include "../parameter_pack/parameter_pack_helpers.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -96,21 +97,16 @@ bool isInRange(const T value, const T lowerBound, const T upperBound)
 	return value >= lowerBound && value <= upperBound;
 }
 
-namespace detail
-{
-	template<typename... Args> void iterate_template_pack(Args&&...) {}
-}
-
 template <typename ResultType, typename... Args>
 ResultType arithmeticMean(Args&&... args)
 {
 	ResultType acc = ResultType(0);
 	size_t n = 0;
 
-	detail::iterate_template_pack((([&](ResultType arg) {
-		acc += arg;
+	pack::apply([&](auto&& value) {
+		acc += value;
 		++n;
-	})(args), void(), 0)...);
+	});
 
 	return acc / n;
 }
@@ -121,10 +117,10 @@ ResultType geometricMean(Args&&... args)
 	ResultType acc = ResultType(1);
 	size_t n = 0;
 
-	detail::iterate_template_pack((([&](ResultType arg) {
-		acc *= arg;
+	pack::apply([&](auto&& value) {
+		acc *= value;
 		++n;
-	})(args), void(), 0)...);
+	});
 
 	return (ResultType)pow(acc, 1.0 / n);
 }
