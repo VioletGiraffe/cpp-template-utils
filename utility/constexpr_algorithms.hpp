@@ -1,9 +1,10 @@
 #pragma once
 
 #include <type_traits>
+#include <utility>
 
 template <int First, int Last, typename Functor>
-constexpr void static_for(Functor&& f)
+constexpr void static_for([[maybe_unused]] Functor&& f)
 {
 	if constexpr (First < Last)
 	{
