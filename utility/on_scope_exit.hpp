@@ -2,17 +2,18 @@
 
 #include "macro_utils.h"
 
-#include <functional>
+#include <utility>
 
 namespace detail {
 
+template <typename Functor>
 class OnScopeExitExecutor
 {
 public:
-	inline explicit OnScopeExitExecutor(std::function<void()>&& code) : _code(std::move(code))
+	explicit OnScopeExitExecutor(Functor&& code) : _code(std::forward<Functor>(code))
 	{}
 
-	inline ~OnScopeExitExecutor()
+	~OnScopeExitExecutor()
 	{
 		_code();
 	}
@@ -20,7 +21,7 @@ public:
 	OnScopeExitExecutor& operator=(const OnScopeExitExecutor&) = delete;
 
 private:
-	const std::function<void()> _code;
+	const Functor _code;
 };
 
 }
