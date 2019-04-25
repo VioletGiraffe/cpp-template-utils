@@ -29,6 +29,9 @@ namespace pack {
 	template <size_t index, typename... Args>
 	using type_by_index = std::tuple_element_t<index, std::tuple<Args...>>;
 
+	template <typename... Args>
+	using first_type = std::tuple_element_t<0, std::tuple<Args...>>;
+
 	template <size_t index, typename... Args>
 	constexpr auto value_by_index(Args&&... args) noexcept {
 		return std::get<index>(std::forward_as_tuple(std::forward<Args>(args)...));
