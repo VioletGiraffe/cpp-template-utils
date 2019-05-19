@@ -63,4 +63,10 @@ namespace tuple {
 		constexpr auto functors = detail::make_functor<Tuple, F>(std::make_index_sequence<std::tuple_size<Tuple>::value>());
 		return functors[index](t, f);
 	}
+
+	template <class Tuple>
+	size_t size(Tuple&&)
+	{
+		return std::tuple_size_v<Tuple>;
+	}
 }
