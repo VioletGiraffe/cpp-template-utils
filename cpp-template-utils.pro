@@ -14,6 +14,7 @@ HEADERS += \
 	container/set_operations.hpp \
 	container/iterator_helpers.hpp \
 	container/algorithms.hpp \
+	utility/memory_cast.hpp \
 	utility/on_scope_exit.hpp \
 	utility/callback_caller.hpp \
 	utility/macro_utils.h \
