@@ -6,7 +6,7 @@
 namespace util {
 
 template <typename TargetType>
-TargetType memory_cast(const void* const memoryPtr)
+TargetType memory_cast(const void* const memoryPtr) noexcept
 {
 	static_assert(!std::is_reference_v<TargetType>);
 	static_assert(std::is_standard_layout_v<TargetType>);
