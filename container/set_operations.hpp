@@ -8,6 +8,7 @@
 #include <numeric>
 #include <set>
 #include <type_traits>
+#include <vector>
 
 namespace SetOperations {
 
@@ -50,18 +51,64 @@ OrderedContainerType longestCommonStart(SupersetType<OrderedContainerType, Other
 // Preserves order (if allowed by the container type).
 //
 
+enum class ItemOrder {
+	DontPreserveOrder,
+	KeepLastOccurrence,
+	KeepFirstOccurrence
+};
 
-template <class ContainerType>
+template <ItemOrder order = ItemOrder::DontPreserveOrder, class ContainerType>
 ContainerType uniqueElements(const ContainerType& c)
 {
+	using ConstIterator = typename ContainerType::const_iterator;
+
+	struct ItemRef {
+		ConstIterator it;
+
+		inline bool operator<(const ItemRef& other) const {
+			return *it < *other.it;
+		}
+	};
+
 	ContainerType result;
-	std::set<typename ContainerType::value_type> helperSet;
+
+	std::set<ItemRef> helperSet;
 	// Inserting into std::set to check whether or not the item is unique.
-	for (auto&& item: c)
+	for (auto it = c.cbegin(), end = c.cend(); it != end; ++it)
 	{
-		const bool unique = helperSet.insert(item).second; // true if a new element was inserted
-		if (unique)
-			result.insert(result.end(), item);
+		ItemRef ref{ it };
+		ref.it = it;
+		auto insertionResult = helperSet.emplace(ItemRef{it}); // true if a new element was inserted
+		const bool unique = insertionResult.second;
+		if constexpr (order == ItemOrder::DontPreserveOrder)
+		{
+			if (unique)
+				result.insert(result.end(), *it);
+		}
+		else if constexpr (order == ItemOrder::KeepFirstOccurrence)
+		{
+		}
+		else if constexpr (order == ItemOrder::KeepLastOccurrence)
+		{
+			if (!unique)
+			{
+				helperSet.erase(insertionResult.first);
+				helperSet.insert(ItemRef{ it });
+			}
+		}
+	}
+
+	if constexpr (order != ItemOrder::DontPreserveOrder)
+	{
+		std::vector<ConstIterator> uniqueIterators;
+		uniqueIterators.reserve(helperSet.size());
+		for (const auto& itemRef: helperSet)
+			uniqueIterators.emplace_back(itemRef.it);
+
+		std::sort(uniqueIterators.begin(), uniqueIterators.end(), [](const ConstIterator& l, const ConstIterator& r){return l < r;});
+		result.reserve(uniqueIterators.size());
+		for (const auto it: uniqueIterators)
+			result.insert(result.end(), *it);
 	}
 
 	return result;
