@@ -30,7 +30,7 @@ namespace pack {
 	using type_by_index = std::tuple_element_t<index, std::tuple<Args...>>;
 
 	template <typename... Args>
-	using first_type = std::tuple_element_t<0, std::tuple<Args...>>;
+	using first_type = type_by_index<0, Args...>;
 
 	template <size_t index, typename... Args>
 	constexpr auto value_by_index(Args&&... args) noexcept {
@@ -38,14 +38,14 @@ namespace pack {
 	}
 
 	template <typename Functor, class Arg, class... Args>
-	void apply(Functor&& f, Arg&& a, Args&&... args) {
+	void apply(Functor&& f, Arg&& a, Args&&... args) noexcept {
 		f(std::forward<Arg>(a));
 		if constexpr (sizeof...(args) > 0)
 			apply(std::forward<Functor>(f), std::forward<Args>(args)...);
 	}
 
 	template <typename... Args, typename Functor>
-	void for_type(Functor&& f) {
+	void for_type(Functor&& f) noexcept {
 		static_for<0, sizeof...(Args)>([f{ std::forward<Functor>(f) }](auto i) {
 			f(type_wrapper<type_by_index<decltype(i)::value, Args...>>{});
 		});
