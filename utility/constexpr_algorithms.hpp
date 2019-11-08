@@ -23,7 +23,6 @@ template <typename Container>
 constexpr void constexpr_sort(Container& container) noexcept
 {
 	constexpr size_t N = sizeof(container) / sizeof(container[0]);
-	std::size(container);
 
 	for (size_t i = 0; i < N - 1; ++i)
 	{
