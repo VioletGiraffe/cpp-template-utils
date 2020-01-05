@@ -27,7 +27,7 @@ template <typename T>
 using remove_cv_and_reference_t = std::remove_cv_t<std::remove_reference_t<std::remove_cv_t<T>>>;
 
 template<class, template<class...> class>
-inline constexpr bool is_specialization_of = false;
+inline constexpr bool is_specialization_of_v = false;
 
 template<template<class...> class T, class... Args>
-inline constexpr bool is_specialization_of<T<Args...>, T> = true;
+inline constexpr bool is_specialization_of_v<T<Args...>, T> = true;
