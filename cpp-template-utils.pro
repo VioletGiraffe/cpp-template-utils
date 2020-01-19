@@ -10,6 +10,8 @@ CONFIG -= qt
 CONFIG += strict_c++ c++17
 
 HEADERS += \
+	container/multi_index.hpp \
+	container/multimap_helpers.hpp \
 	math/math.hpp \
 	container/set_operations.hpp \
 	container/iterator_helpers.hpp \
