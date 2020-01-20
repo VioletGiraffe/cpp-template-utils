@@ -4,5 +4,10 @@
 #include "container/multi_index.hpp"
 
 TEST_CASE("Construction", "[multiindex]") {
-	MultiIndexSet
+	struct S {
+		int intValue;
+		float floatValue;
+	};
+
+	MultiIndexSet<S, &S::intValue, &S::floatValue> set;
 }

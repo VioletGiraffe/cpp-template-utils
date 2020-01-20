@@ -18,17 +18,17 @@ public:
 private:
 	struct PrimaryKeyComparator
 	{
-		inline constexpr bool operator()(const T& left, const T& right) const
+		inline constexpr bool operator()(const T& left, const T& right) const noexcept
 		{
 			return left.*primaryKeyFieldPtr < right.*primaryKeyFieldPtr;
 		}
 
-		inline constexpr bool operator()(const PrimaryKeyType& key, const T& item) const
+		inline constexpr bool operator()(const PrimaryKeyType& key, const T& item) const noexcept
 		{
 			return key < item.*primaryKeyFieldPtr;
 		}
 
-		inline constexpr bool operator()(const T& item, const PrimaryKeyType& key) const
+		inline constexpr bool operator()(const T& item, const PrimaryKeyType& key) const noexcept
 		{
 			return item.*primaryKeyFieldPtr < key;
 		}
@@ -36,10 +36,14 @@ private:
 		using is_transparent = void;
 	};
 
-	static constexpr auto secondaryKeyComparator = [](const T& left, const T& right) {return left.*secondaryKeyFieldPtr < right.*secondaryKeyFieldPtr;};
+	struct SecondaryKeyComparator {
+		inline constexpr bool operator()(const T& left, const T& right) const noexcept {
+			return left.*secondaryKeyFieldPtr < right.*secondaryKeyFieldPtr;
+		}
+	};
 
 	std::set<T, PrimaryKeyComparator> _primarySet;
-	std::multimap<SecondaryKeyType, T*, decltype(secondaryKeyComparator)> _secondaryIndex;
+	std::multimap<SecondaryKeyType, T*, SecondaryKeyComparator> _secondaryIndex;
 
 public:
 	using iterator = multimap_value_iterator<T, typename decltype(_primarySet)::iterator>;
@@ -53,12 +57,26 @@ public:
 		return result;
 	}
 
-	auto findPrimary(const PrimaryKey& key) const {
+	auto findPrimary(const PrimaryKeyType& key) const noexcept {
 		return _primarySet.find(key);
 	}
 
-	std::pair<iterator, iterator> findSecondary(const SecondaryKey& key) const {
+	std::pair<iterator, iterator> findSecondary(const SecondaryKeyType& key) const noexcept {
 		const auto range = _secondaryIndex.equal_range(key);
 		return { range.first, range.second };
+	}
+
+	// Returns a pair of iterators [begin, end) matching the range of keys [lowerBound, upperBound)
+	// such that [begin, end) contains all the items for which lowerBound <= key < upperBound
+	std::pair<iterator, iterator> findSecondaryInRange(const SecondaryKeyType& lowerBound, const SecondaryKeyType& upperBound) const noexcept {
+		return { _secondaryIndex.lower_bound(lowerBound), _secondaryIndex.upper_bound(upperBound) };
+	}
+
+	size_t size() const noexcept {
+		return _primarySet.size();
+	}
+
+	bool empty() const noexcept {
+		return _primarySet.empty();
 	}
 };
