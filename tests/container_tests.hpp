@@ -32,6 +32,9 @@ TEST_CASE("Empty set tests", "[multiindex]") {
 
 		auto range = set.findSecondary(10);
 		REQUIRE_NOTHROW(range.first == range.second);
+		range = set.findSecondaryInRange(100.0f, 500.0f);
+		REQUIRE_NOTHROW(range.first == range.second);
+		//REQUIRE_NOTHROW(std::distance(range.first, range.second) == 0);
 	} catch(...) {
 		FAIL();
 	}

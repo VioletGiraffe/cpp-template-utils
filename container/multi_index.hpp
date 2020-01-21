@@ -65,6 +65,7 @@ public:
 	// Returns a pair of iterators [begin, end) matching the range of keys [lowerBound, upperBound)
 	// such that [begin, end) contains all the items for which lowerBound <= key < upperBound
 	std::pair<secondary_key_iterator, secondary_key_iterator> findSecondaryInRange(const SecondaryKeyType& lowerBound, const SecondaryKeyType& upperBound) const noexcept {
+		assert(lowerBound <= upperBound);
 		return { _secondaryIndex.lower_bound(lowerBound), _secondaryIndex.upper_bound(upperBound) };
 	}
 
