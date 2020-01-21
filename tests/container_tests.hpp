@@ -29,6 +29,9 @@ TEST_CASE("Empty set tests", "[multiindex]") {
 		REQUIRE_NOTHROW(set.findPrimary(0) == set.end());
 		REQUIRE_NOTHROW(set.findPrimary(10) == set.end());
 		REQUIRE_NOTHROW(set.begin() == set.end());
+
+		auto range = set.findSecondary(10);
+		REQUIRE_NOTHROW(range.first == range.second);
 	} catch(...) {
 		FAIL();
 	}

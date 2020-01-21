@@ -3,18 +3,19 @@
 #include <iterator>
 #include <memory>
 
-template <typename ValueType, typename ActualMultimapIterator>
+template <typename ActualMultimapIterator>
 struct multimap_value_iterator {
-	explicit multimap_value_iterator(const ActualMultimapIterator& iterator) noexcept
+	using value_type = decltype(std::iterator_traits<ActualMultimapIterator>::value_type::second);
+
+	constexpr multimap_value_iterator(const ActualMultimapIterator& iterator) noexcept
 		: _iterator{iterator}
 	{}
 
-	constexpr multimap_value_iterator() noexcept = default;
+	constexpr multimap_value_iterator() = default;
 	constexpr multimap_value_iterator(const multimap_value_iterator&) noexcept = default;
 	constexpr multimap_value_iterator(multimap_value_iterator&&) noexcept = default;
 	constexpr multimap_value_iterator& operator=(const multimap_value_iterator&) noexcept = default;
 	constexpr multimap_value_iterator& operator=(multimap_value_iterator&&) noexcept = default;
-	~multimap_value_iterator() noexcept = default;
 
 	constexpr multimap_value_iterator& operator++() noexcept {
 		++_iterator;
@@ -38,17 +39,18 @@ struct multimap_value_iterator {
 		return old;
 	}
 
-	constexpr ValueType& operator*() const noexcept {
+	constexpr value_type& operator*() const noexcept {
 		return _iterator->second;
 	}
 
-	constexpr ValueType* operator->() const noexcept {
+	constexpr value_type* operator->() const noexcept {
 		return std::addressof(_iterator->second);
+	}
+
+	constexpr bool operator==(const multimap_value_iterator& other) const noexcept {
+		return _iterator == other._iterator;
 	}
 
 private:
 	ActualMultimapIterator _iterator;
 };
-
-template <typename ActualMultimapIterator>
-multimap_value_iterator(const ActualMultimapIterator&) -> multimap_value_iterator<decltype (std::iterator_traits<ActualMultimapIterator>::value_type::second), ActualMultimapIterator>;

@@ -37,17 +37,11 @@ private:
 		using is_transparent = void;
 	};
 
-	struct SecondaryKeyComparator {
-		inline constexpr bool operator()(const T& left, const T& right) const noexcept {
-			return left.*secondaryKeyFieldPtr < right.*secondaryKeyFieldPtr;
-		}
-	};
-
 	std::set<T, PrimaryKeyComparator> _primarySet;
-	std::multimap<SecondaryKeyType, T*, SecondaryKeyComparator> _secondaryIndex;
+	std::multimap<SecondaryKeyType, T*> _secondaryIndex;
 
 public:
-	using secondary_key_iterator = multimap_value_iterator<T, typename decltype(_primarySet)::iterator>;
+	using secondary_key_iterator = multimap_value_iterator<typename decltype(_secondaryIndex)::const_iterator>;
 
 	template<class... Args>
 	auto emplace(Args&&... args) {
@@ -65,7 +59,7 @@ public:
 
 	std::pair<secondary_key_iterator, secondary_key_iterator> findSecondary(const SecondaryKeyType& key) const noexcept {
 		const auto range = _secondaryIndex.equal_range(key);
-		return { range.first, range.second };
+		return {range.first, range.second};
 	}
 
 	// Returns a pair of iterators [begin, end) matching the range of keys [lowerBound, upperBound)
