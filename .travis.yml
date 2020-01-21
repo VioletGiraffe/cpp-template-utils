@@ -23,17 +23,14 @@ before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then gcc --version; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then g++ --version; fi
 
-  # linuxdeployqt
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then chmod a+x linuxdeployqt-continuous-x86_64.AppImage; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH; fi
 
   - $QMAKE -v
 
 script:
   # Building the main binaries
-  - cd tests; $QMAKE -r CONFIG+=release; make -j;
-  # Linux: deploying Qt binaries
-  - ./linuxdeployqt-continuous-x86_64.AppImage tests/release/tests -bundle-non-qt-libs
+  - cd tests
+  - $QMAKE -r CONFIG+=release
+  - make -j
   # Running tests
-  - ./tests/release/tests
+  - ./tests
