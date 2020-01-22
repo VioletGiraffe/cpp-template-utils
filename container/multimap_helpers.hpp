@@ -1,11 +1,15 @@
 #pragma once
 
-#include <iterator>
 #include <memory>
+#include <type_traits>
 
 template <typename ActualMultimapIterator>
 struct multimap_value_iterator {
-	using value_type = decltype(std::iterator_traits<ActualMultimapIterator>::value_type::second);
+	using value_type = std::remove_reference_t<decltype(ActualMultimapIterator::value_type::second)>;
+	using iterator_category = typename ActualMultimapIterator::iterator_category;
+	using difference_type = typename ActualMultimapIterator::difference_type;
+	using pointer = value_type*;
+	using reference = value_type&;
 
 	constexpr multimap_value_iterator(const ActualMultimapIterator& iterator) noexcept
 		: _iterator{iterator}
@@ -49,6 +53,10 @@ struct multimap_value_iterator {
 
 	constexpr bool operator==(const multimap_value_iterator& other) const noexcept {
 		return _iterator == other._iterator;
+	}
+
+	constexpr bool operator!=(const multimap_value_iterator& other) const noexcept {
+		return !(*this == other);
 	}
 
 private:

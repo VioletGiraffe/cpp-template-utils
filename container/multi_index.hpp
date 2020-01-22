@@ -4,6 +4,7 @@
 #include "utility/extra_type_traits.hpp"
 
 #include <assert.h>
+#include <initializer_list>
 #include <map>
 #include <memory>
 #include <set>
@@ -42,6 +43,13 @@ private:
 
 public:
 	using secondary_key_iterator = multimap_value_iterator<typename decltype(_secondaryIndex)::const_iterator>;
+
+	constexpr MultiIndexSet() = default;
+
+	constexpr MultiIndexSet(std::initializer_list<T> list) noexcept {
+		for (auto&& item: list)
+			emplace(item);
+	}
 
 	template<class... Args>
 	auto emplace(Args&&... args) {
