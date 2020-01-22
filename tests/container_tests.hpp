@@ -11,6 +11,9 @@ TEST_CASE("Construction", "[multiindex]") {
 
 	try {
 		MultiIndexSet<S, &S::intValue, &S::floatValue> set;
+
+		static_assert(std::is_same_v<decltype(set)::PrimaryKeyType, int>);
+		static_assert(std::is_same_v<decltype(set)::SecondaryKeyType, float>);
 	} catch(...) {
 		FAIL();
 	}

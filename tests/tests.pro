@@ -1,4 +1,4 @@
-CONFIG += c++17
+CONFIG += c++1z strict_c++
 CONFIG -= qt
 
 TEMPLATE = app
@@ -28,6 +28,15 @@ linux*|mac*{
 INCLUDEPATH += $${PWD}/../
 
 
-HEADERS += container_tests.hpp
+HEADERS += container_tests.hpp \
+	../container/algorithms.hpp \
+	../container/iterator_helpers.hpp \
+	../container/multi_index.hpp \
+	../container/multimap_helpers.hpp \
+	../container/ordered_containers.hpp \
+	../container/set_operations.hpp \
+	../container/std_container_helpers.hpp \
+	../container/string_helpers.hpp \
+	extra_type_traits_tests.hpp
 
 SOURCES += tests_main.cpp

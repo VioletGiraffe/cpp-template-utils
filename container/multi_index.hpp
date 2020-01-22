@@ -9,6 +9,9 @@
 #include <memory>
 #include <set>
 
+template <typename...>
+struct CheckType;
+
 template <typename T, auto primaryKeyFieldPtr, auto secondaryKeyFieldPtr>
 class MultiIndexSet {
 public:
@@ -47,15 +50,15 @@ public:
 	constexpr MultiIndexSet() = default;
 
 	constexpr MultiIndexSet(std::initializer_list<T> list) noexcept {
-		for (auto&& item: list)
+		for (const auto& item: list)
 			emplace(item);
 	}
 
-	template<class... Args>
+	template <typename... Args>
 	auto emplace(Args&&... args) {
-		auto result = _primarySet.emplace(std::forward<Args>(args)...);
+		const auto result = _primarySet.emplace(std::forward<Args>(args)...);
 		if (result.second)
-			_secondaryIndex.emplace(result.first->*secondaryKeyFieldPtr, std::addressof(*result.first));
+			_secondaryIndex[(*(result.first)).*secondaryKeyFieldPtr] = std::addressof(*(result.first));
 
 		assert(_primarySet.size() == _secondaryIndex.size());
 		return result;
