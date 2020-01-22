@@ -61,8 +61,13 @@ TEST_CASE("Compile time constant construction", "[multiindex]") {
 		auto range = set.findSecondary(10);
 		REQUIRE_NOTHROW(range.first == range.second);
 		range = set.findSecondaryInRange(100.0f, 500.0f);
-		REQUIRE_NOTHROW(range.first == range.second);
-		REQUIRE_NOTHROW(std::distance(range.first, range.second) == 0);
+		REQUIRE_NOTHROW(range.first != range.second);
+		REQUIRE_NOTHROW(std::distance(range.first, range.second) == 1);
+		REQUIRE_NOTHROW((*range.first)->floatValue == 111.0f);
+
+		range = set.findSecondaryInRange(1.0f, 11.0f);
+		REQUIRE_NOTHROW(range.first != range.second);
+		REQUIRE_NOTHROW(std::distance(range.first, range.second) == 1);
 	} catch(...) {
 		FAIL();
 	}

@@ -18,7 +18,7 @@ public:
 	using PrimaryKeyType = member_type_from_ptr_t<primaryKeyFieldPtr>;
 	using SecondaryKeyType = member_type_from_ptr_t<secondaryKeyFieldPtr>;
 
-	using value_type = T;
+	using value_type = const T;
 
 private:
 	struct PrimaryKeyComparator
@@ -42,7 +42,7 @@ private:
 	};
 
 	std::set<T, PrimaryKeyComparator> _primarySet;
-	std::multimap<SecondaryKeyType, T*> _secondaryIndex;
+	std::multimap<SecondaryKeyType, value_type*> _secondaryIndex;
 
 public:
 	using secondary_key_iterator = multimap_value_iterator<typename decltype(_secondaryIndex)::const_iterator>;
@@ -58,7 +58,7 @@ public:
 	auto emplace(Args&&... args) {
 		const auto result = _primarySet.emplace(std::forward<Args>(args)...);
 		if (result.second)
-			_secondaryIndex[(*(result.first)).*secondaryKeyFieldPtr] = std::addressof(*(result.first));
+			_secondaryIndex.emplace((*(result.first)).*secondaryKeyFieldPtr, std::addressof(*(result.first)));
 
 		assert(_primarySet.size() == _secondaryIndex.size());
 		return result;
