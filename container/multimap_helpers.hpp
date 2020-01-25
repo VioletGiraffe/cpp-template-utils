@@ -43,11 +43,12 @@ struct multimap_value_iterator {
 		return old;
 	}
 
-	constexpr value_type& operator*() const noexcept {
+	// TODO: why does it fail with value_type instead of auto?
+	constexpr auto& operator*() const noexcept {
 		return _iterator->second;
 	}
 
-	constexpr value_type* operator->() const noexcept {
+	constexpr auto* operator->() const noexcept {
 		return std::addressof(_iterator->second);
 	}
 
