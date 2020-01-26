@@ -4,13 +4,12 @@
 #include "utility/extra_type_traits.hpp"
 
 #include <assert.h>
+#include <algorithm>
 #include <initializer_list>
 #include <map>
 #include <memory>
 #include <set>
-
-template <typename...>
-struct CheckType;
+#include <utility>
 
 template <typename T, auto primaryKeyFieldPtr, auto secondaryKeyFieldPtr>
 class MultiIndexSet {
@@ -82,8 +81,6 @@ public:
 		assert(lowerBound <= upperBound);
 		return { _secondaryIndex.lower_bound(lowerBound), _secondaryIndex.upper_bound(upperBound) };
 	}
-
-	template <typename T> struct printType;
 
 	void erase(typename decltype(_primarySet)::iterator it) noexcept
 	{
