@@ -80,6 +80,8 @@ public:
 		return { _secondaryIndex.lower_bound(lowerBound), _secondaryIndex.upper_bound(upperBound) };
 	}
 
+	template <typename T> struct printType;
+
 	void erase(typename decltype(_primarySet)::iterator it) noexcept
 	{
 		assert(it != _primarySet.end());
@@ -89,8 +91,8 @@ public:
 		{
 			const auto current = secondaryIt;
 			++secondaryIt;
-			if (current->second == std::addressof(*it))
-				_secondaryIndex.erase(current);
+			if (*current == std::addressof(*it))
+				_secondaryIndex.erase(current.nativeIterator());
 		}
 
 		_primarySet.erase(it);
@@ -112,6 +114,8 @@ public:
 	{
 		const auto it = _primarySet.find(item);
 		if (it == _primarySet.end())
+			return 0;
+		else if (!(*it == item))
 			return 0;
 
 		erase(it);
@@ -137,5 +141,21 @@ public:
 
 	auto end() const {
 		return _primarySet.end();
+	}
+
+	bool debugCheckSecondaryIndex() const noexcept {
+		if (_secondaryIndex.size() != _primarySet.size())
+			return false;
+
+		for (auto& item : _primarySet)
+		{
+			const auto range = findSecondary(item.*secondaryKeyFieldPtr);
+			if (range.first == range.second)
+				return false;
+			else if (std::find_if(range.first, range.second, [&](const auto& localItem) {return item.*secondaryKeyFieldPtr == localItem->*secondaryKeyFieldPtr;}) == range.second)
+				return false;
+		}
+
+		return true;
 	}
 };

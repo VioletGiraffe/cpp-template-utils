@@ -21,6 +21,10 @@ struct multimap_value_iterator {
 	constexpr multimap_value_iterator& operator=(const multimap_value_iterator&) noexcept = default;
 	constexpr multimap_value_iterator& operator=(multimap_value_iterator&&) noexcept = default;
 
+	constexpr auto nativeIterator() const noexcept {
+		return _iterator;
+	}
+
 	constexpr multimap_value_iterator& operator++() noexcept {
 		++_iterator;
 		return *this;
