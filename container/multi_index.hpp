@@ -45,6 +45,9 @@ private:
 	std::multimap<SecondaryKeyType, value_type*> _secondaryIndex;
 
 public:
+	using iterator = typename decltype(_primarySet)::iterator;
+	using const_iterator = typename decltype(_primarySet)::iterator;
+
 	using secondary_key_iterator = multimap_value_iterator<typename decltype(_secondaryIndex)::const_iterator>;
 
 	constexpr MultiIndexSet() = default;
