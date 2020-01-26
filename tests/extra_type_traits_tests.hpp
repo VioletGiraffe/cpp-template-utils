@@ -1,6 +1,6 @@
 #pragma once
 
-#include "catch2/catch.hpp"
+#include "../3rdparty/catch2/catch.hpp"
 #include "utility/extra_type_traits.hpp"
 
 TEST_CASE("member_type_from_ptr_t", "[extra_type_traits]") {
