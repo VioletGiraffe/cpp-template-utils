@@ -24,8 +24,18 @@ namespace pack {
 		return index;
 	}
 
-	template <typename T, typename... Args, typename = std::enable_if_t<(bool)index_for_type<T, Args...>(), size_t>>
-	constexpr size_t index_for_type_v = *index_for_type<T, Args...>();
+    namespace detail {
+    template <typename T, typename... Args>
+    [[nodiscard]] constexpr size_t index_for_type_strict() noexcept
+    {
+        constexpr auto index = index_for_type<T, Args...>();
+        static_assert (index, "Type not found in pack");
+        return *index;
+    }
+    }
+
+    template <typename T, typename... Args>
+    constexpr size_t index_for_type_v = detail::index_for_type_strict<T, Args...>();
 
 	template <typename T, typename... Args>
 	constexpr bool has_type_v = index_for_type<T, Args...>();
