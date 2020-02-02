@@ -7,7 +7,7 @@ win*{
 CONFIG += staticlib
 CONFIG -= qt
 
-CONFIG += strict_c++ c++17
+CONFIG += strict_c++ c++1z
 
 HEADERS += \
 	container/multi_index.hpp \
@@ -26,7 +26,7 @@ HEADERS += \
 	container/ordered_containers.hpp \
 	container/string_helpers.hpp \
 	tuple/tuple_helpers.hpp \
-    parameter_pack/parameter_pack_helpers.hpp \
-    utility/template_magic.hpp \
-    utility/integer_literals.hpp \
-    random/randomnumbergenerator.h
+	parameter_pack/parameter_pack_helpers.hpp \
+	utility/template_magic.hpp \
+	utility/integer_literals.hpp \
+	random/randomnumbergenerator.h

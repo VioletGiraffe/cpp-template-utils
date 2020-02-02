@@ -24,11 +24,11 @@ namespace pack {
 		return index;
 	}
 
-	template <typename T, typename... Args, typename = std::enable_if_t<index_for_type<T, Args...>().has_value(), size_t>>
+	template <typename T, typename... Args, typename = std::enable_if_t<(bool)index_for_type<T, Args...>(), size_t>>
 	constexpr size_t index_for_type_v = *index_for_type<T, Args...>();
 
 	template <typename T, typename... Args>
-	constexpr bool has_type_v = index_for_type<T, Args...>().has_value();
+	constexpr bool has_type_v = index_for_type<T, Args...>();
 
 	template <typename T, typename... Args>
 	[[nodiscard]] constexpr size_t type_count() noexcept
