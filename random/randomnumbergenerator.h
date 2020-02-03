@@ -9,7 +9,7 @@ class RandomNumberGenerator
 {
 	static_assert (std::is_integral_v<IntType>, "IntType must be integral.");
 public:
-	constexpr RandomNumberGenerator(IntType seed = 0, IntType min = std::numeric_limits<IntType>::min(), IntType max = std::numeric_limits<IntType>::max()) : _rng(seed), _distribution(min, max) noexcept
+	constexpr RandomNumberGenerator(IntType seed = 0, IntType min = std::numeric_limits<IntType>::min(), IntType max = std::numeric_limits<IntType>::max()) noexcept : _rng(seed), _distribution(min, max)
 	{}
 
 	IntType rand() noexcept
