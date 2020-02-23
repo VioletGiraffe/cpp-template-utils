@@ -17,25 +17,25 @@ namespace pack {
 	{
 		std::optional<size_t> index;
 		static_for<0, sizeof...(Args)>([&index](auto i) {
-			if constexpr (std::is_same_v<T, type_by_index<static_cast<size_t>(decltype(i){}), Args... >>)
+			if constexpr (std::is_same_v < T, type_by_index < static_cast<size_t>(decltype(i){}), Args... >> )
 				index = static_cast<size_t>(decltype(i){});
 		});
 
 		return index;
 	}
 
-    namespace detail {
-    template <typename T, typename... Args>
-    [[nodiscard]] constexpr size_t index_for_type_strict() noexcept
-    {
-        constexpr auto index = index_for_type<T, Args...>();
-        static_assert (index, "Type not found in pack");
-        return *index;
-    }
-    }
+	namespace detail {
+		template <typename T, typename... Args>
+		[[nodiscard]] constexpr size_t index_for_type_strict() noexcept
+		{
+			constexpr auto index = index_for_type<T, Args...>();
+			static_assert (index, "Type not found in pack");
+			return *index;
+		}
+	}
 
-    template <typename T, typename... Args>
-    constexpr size_t index_for_type_v = detail::index_for_type_strict<T, Args...>();
+	template <typename T, typename... Args>
+	constexpr size_t index_for_type_v = detail::index_for_type_strict<T, Args...>();
 
 	template <typename T, typename... Args>
 	constexpr bool has_type_v = index_for_type<T, Args...>();
