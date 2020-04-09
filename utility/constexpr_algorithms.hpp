@@ -2,6 +2,7 @@
 #include "template_magic.hpp"
 
 #include <utility>
+#include <vector> // std::size
 
 template <int First, int Last, typename Functor>
 constexpr void static_for([[maybe_unused]] Functor&& f) noexcept

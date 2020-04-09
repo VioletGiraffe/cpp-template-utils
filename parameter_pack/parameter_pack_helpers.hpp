@@ -38,7 +38,7 @@ namespace pack {
 	constexpr size_t index_for_type_v = detail::index_for_type_strict<T, Args...>();
 
 	template <typename T, typename... Args>
-	constexpr bool has_type_v = index_for_type<T, Args...>();
+	constexpr bool has_type_v = static_cast<bool>(index_for_type<T, Args...>());
 
 	template <typename T, typename... Args>
 	[[nodiscard]] constexpr size_t type_count() noexcept
