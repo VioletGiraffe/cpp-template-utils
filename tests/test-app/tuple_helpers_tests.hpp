@@ -3,6 +3,7 @@
 #include "3rdparty/catch2/catch.hpp"
 #include "tuple/tuple_helpers.hpp"
 #include "utility/constexpr_algorithms.hpp"
+#include "utility/extra_type_traits.hpp"
 
 #include <limits>
 #include <string>
@@ -52,6 +53,11 @@ TEST_CASE("visit", "[tuple]") {
 			item = 3.14159f;
 		});
 
+		CHECK(std::get<0>(reference) == -1043);
+		CHECK(std::get<1>(reference) == std::numeric_limits<uint64_t>::max() - 5);
+		CHECK(std::get<2>(reference) == 3.14159f);
+		CHECK(std::get<2>(reference) != 3.14f);
+
 		CHECK(reference == std::tuple{-1043, std::numeric_limits<uint64_t>::max() - 5, 3.14159f});
 		CHECK(reference != r2);
 	}
@@ -82,18 +88,27 @@ TEST_CASE("for_each", "[tuple]") {
 	}
 
 	SECTION("mutable") {
-		std::tuple reference{-1, std::numeric_limits<uint64_t>::max(), std::string{"abc"}, 1.7f};
+		std::tuple reference{-1, std::numeric_limits<uint64_t>::max(), std::string{"abc"}, 3.14f};
 		const auto r2 = reference;
 
 		tuple::for_each(reference, [&](auto&& item) {
-			item += 1;
+			using ItemType = remove_cv_and_reference_t<decltype(item)>;
+			if constexpr (std::is_floating_point_v<ItemType>)
+				item += 2.5f;
+			else
+				item += 1;
 		});
 
 		static_for<0, std::tuple_size_v<decltype(reference)>>([&](auto index_wrapper){
 			CHECK(std::get<index_wrapper>(reference) != std::get<index_wrapper>(r2));
-			CHECK(std::get<index_wrapper>(reference) == std::get<index_wrapper>(r2) + 1);
+			if constexpr (index_wrapper == 3)
+				CHECK(std::get<index_wrapper>(reference) == std::get<index_wrapper>(r2) + 2.5f);
+			else
+				CHECK(std::get<index_wrapper>(reference) == std::get<index_wrapper>(r2) + 1);
 		});
 
 		CHECK(std::get<2>(reference) == "abc1");
+		CHECK(std::get<3>(reference) == (3.14f + 2.5f));
+		CHECK(std::get<3>(reference) != 4.14f);
 	}
 }
