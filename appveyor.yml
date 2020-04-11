@@ -1,0 +1,29 @@
+version: '{build}'
+init:
+  clone_depth: 1
+
+environment:
+  matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      qt: 5.14\msvc2017_64
+      VS_VERSION: 2019
+      WIN_SDK: 10.0.18362.0
+      BUILD_ARCH: x64
+
+configuration:
+  - Release
+
+install:
+  - cd tests
+  - set PATH=C:\Qt\%qt%\bin;%PATH%;
+  - dir "C:\Program Files (x86)\Windows Kits\10\include\"
+  - '"C:\Qt\%qt%\bin\qmake.exe" -v'
+  - call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r
+
+build_script:
+  - dir
+  - msbuild tests.sln /t:Build /p:Configuration=Release;PlatformToolset=v142
+
+test_script:
+  - .\bin\tests.exe -s -r junit -o tests.xml
+  - ps: (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\tests.xml))
