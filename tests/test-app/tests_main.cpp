@@ -4,3 +4,4 @@
 #include "extra_type_traits_tests.hpp"
 #include "tuple_helpers_tests.hpp"
 #include "parameter_pack_tests.hpp"
+#include "constexpr_algos_tests.hpp"

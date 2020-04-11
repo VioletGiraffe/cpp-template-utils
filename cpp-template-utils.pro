@@ -7,7 +7,9 @@ win*{
 CONFIG += staticlib
 CONFIG -= qt
 
-CONFIG += strict_c++ c++1z
+CONFIG += strict_c++ c++2a
+
+*g++*:QMAKE_CXXFLAGS += -fconcepts
 
 include (compiler/compiler.pri)
 
