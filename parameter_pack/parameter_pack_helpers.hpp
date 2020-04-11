@@ -17,8 +17,11 @@ namespace pack {
 	{
 		std::optional<size_t> index;
 		static_for<0, sizeof...(Args)>([&index](auto i) {
-			if constexpr (std::is_same_v < T, type_by_index < static_cast<size_t>(decltype(i){}), Args... >> )
-				index = static_cast<size_t>(decltype(i){});
+			if (!index) // The index of the first occurrence is stored
+			{
+				if constexpr (std::is_same_v<T, type_by_index<static_cast<size_t>(decltype(i){}), Args... >> )
+					index = static_cast<size_t>(decltype(i){});
+			}
 		});
 
 		return index;

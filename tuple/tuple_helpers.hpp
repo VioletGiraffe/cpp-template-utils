@@ -8,65 +8,59 @@
 #include <utility>
 
 namespace tuple {
-	template<class F, class... Ts, std::size_t... Is>
-	void for_each(const std::tuple<Ts...>& tuple, F func, std::index_sequence<Is...>) {
-		using expander = int[];
-		(void)expander {
-			0, ((void)func(std::get<Is>(tuple)), 0)...
-		};
-	}
-
-	template<class F, class... Ts>
-	void for_each(const std::tuple<Ts...>& tuple, F func) {
-		::tuple::for_each(tuple, func, std::make_index_sequence<sizeof... (Ts)>());
-	}
-
-	template<class F, class... Ts, std::size_t... Is>
-	void for_each(std::tuple<Ts...>& tuple, F func, std::index_sequence<Is...>) {
-		using expander = int[];
-		(void)expander {
-			0, ((void)func(std::get<Is>(tuple)), 0)...
-		};
-	}
-
-	template<class F, class... Ts>
-	void for_each(std::tuple<Ts...>& tuple, F func) {
-		::tuple::for_each(tuple, func, std::make_index_sequence<sizeof... (Ts)>());
-	}
-}
-
-namespace tuple {
-	template <typename T, typename... Args>
-	constexpr size_t indexForType(const std::tuple<Args...>&) {
-		return ::pack::index_for_type_v<T, Args...>;
-	}
-}
-
-namespace tuple {
 	namespace detail {
 		template <class Tuple, class F, size_t I>
-		void invoke(Tuple &tuple, F f)
+		constexpr void invoke(Tuple&& tuple, F f)
 		{
 			f(std::get<I>(tuple));
 		}
 
 		template <class Tuple, class F, size_t... I>
-		constexpr auto make_functor(std::index_sequence<I...>)
+		[[nodiscard]] constexpr auto make_functor(std::index_sequence<I...>)
 		{
 			return std::array<void (*)(Tuple &, F), sizeof...(I)>{invoke<Tuple, F, I>...};
 		}
-	}
 
-	template <class Tuple, class F>
-	void visit(Tuple &t, size_t index, F f)
-	{
-		constexpr auto functors = detail::make_functor<Tuple, F>(std::make_index_sequence<std::tuple_size<Tuple>::value>());
-		return functors[index](t, f);
+		template <class Tuple, class F, size_t... I>
+		[[nodiscard]] constexpr auto make_functor_const(std::index_sequence<I...>)
+		{
+			return std::array<void (*)(const Tuple &, F), sizeof...(I)>{invoke<const Tuple, F, I>...};
+		}
 	}
 
 	template <class Tuple>
-	size_t size(Tuple&&)
+	inline constexpr size_t tuple_size_v_omnivorous = std::tuple_size_v<std::remove_reference_t<Tuple>>;
+
+	template <class Tuple, class F>
+	constexpr void visit(Tuple&& t, size_t index, F f)
 	{
-		return std::tuple_size_v<Tuple>;
+		if constexpr (std::is_const_v<Tuple>)
+		{
+			constexpr auto functors = detail::make_functor_const<Tuple, F>(std::make_index_sequence<tuple_size_v_omnivorous<Tuple>>());
+			return functors[index](std::forward<Tuple>(t), f);
+		}
+		else
+		{
+			constexpr auto functors = detail::make_functor<Tuple, F>(std::make_index_sequence<tuple_size_v_omnivorous<Tuple>>());
+			return functors[index](std::forward<Tuple>(t), f);
+		}
+	}
+
+	template <typename T, typename... Args>
+	[[nodiscard]] constexpr size_t indexForType(const std::tuple<Args...>&) {
+		return ::pack::index_for_type_v<T, Args...>;
+	}
+
+	template <class Tuple>
+	[[nodiscard]] constexpr size_t size(Tuple&&)
+	{
+		return tuple_size_v_omnivorous<Tuple>;
+	}
+
+	template<class Tuple, class F>
+	void for_each(Tuple&& tuple, F func) {
+		static_for<0, tuple_size_v_omnivorous<Tuple>>([&](auto index_wrapper){
+			::tuple::visit(tuple, index_wrapper, func);
+		});
 	}
 }

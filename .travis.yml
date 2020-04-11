@@ -15,9 +15,8 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90; fi
   # Qt5
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt512-meta-minimal; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export QMAKE=/opt/qt512/bin/qmake; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH=/opt/qt512/bin/:$PATH; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt5-qmake-bin; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export QMAKE=/usr/lib/x86_64-linux-gnu/qt5/bin/qmake; fi
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then gcc --version; fi
@@ -33,4 +32,4 @@ script:
   - $QMAKE -r CONFIG+=release
   - make -j
   # Running tests
-  - ./tests
+  - ./bin/tests

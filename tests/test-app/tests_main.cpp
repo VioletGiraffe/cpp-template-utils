@@ -2,3 +2,4 @@
 
 #include "container_tests.hpp"
 #include "extra_type_traits_tests.hpp"
+#include "tuple_helpers_tests.hpp"
