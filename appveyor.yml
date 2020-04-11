@@ -22,7 +22,7 @@ install:
 
 build_script:
   - dir
-  - msbuild tests.sln /t:Build /p:Configuration=Release;PlatformToolset=v142
+  - msbuild /t:Build /p:Configuration=Release;PlatformToolset=v142
 
 test_script:
   - .\bin\tests.exe -s -r junit -o tests.xml
