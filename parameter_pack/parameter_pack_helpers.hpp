@@ -63,11 +63,14 @@ namespace pack {
 		return std::get<index>(std::forward_as_tuple(std::forward<Args>(args)...));
 	}
 
+	template <typename Functor>
+	constexpr void for_value(Functor&&) noexcept {
+	}
+
 	template <typename Functor, class Arg, class... Args>
-	constexpr void apply(Functor&& f, Arg&& a, Args&&... args) noexcept {
+	constexpr void for_value(Functor&& f, Arg&& a, Args&&... args) noexcept {
 		f(std::forward<Arg>(a));
-		if constexpr (sizeof...(args) > 0)
-			apply(std::forward<Functor>(f), std::forward<Args>(args)...);
+		for_value(std::forward<Functor>(f), std::forward<Args>(args)...);
 	}
 
 	template <typename... Args, typename Functor>

@@ -2,6 +2,7 @@
 
 #include "3rdparty/catch2/catch.hpp"
 #include "container/multi_index.hpp"
+#include "compiler/compiler_warnings_control.h"
 
 TEST_CASE("Construction", "[multiindex]") {
 	struct S {
@@ -119,7 +120,11 @@ TEST_CASE("Searching in MultiIndexSet", "[multiindex]") {
 			REQUIRE_NOTHROW(set.findPrimary(100) == ++++set.begin());
 			REQUIRE_NOTHROW(set.findPrimary(-7) == set.end());
 			REQUIRE_NOTHROW(set.findPrimary(10) != set.end());
+
+			DISABLE_COMPILER_WARNINGS
 			REQUIRE_NOTHROW(set.findPrimary(10.0f) == ++set.begin()); // Transaprent comparison test, "conversion from 'float' to 'const int'" warning intentional
+			RESTORE_COMPILER_WARNINGS
+
 			REQUIRE(set.debugCheckSecondaryIndex());
 		}
 

@@ -31,8 +31,10 @@ INCLUDEPATH += $${PWD}/../../
 
 
 HEADERS += \
+	catch2_helpers.hpp \
 	container_tests.hpp \
 	extra_type_traits_tests.hpp \
+	parameter_pack_tests.hpp \
 	tuple_helpers_tests.hpp
 
 SOURCES += tests_main.cpp

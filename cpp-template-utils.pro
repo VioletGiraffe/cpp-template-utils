@@ -9,6 +9,8 @@ CONFIG -= qt
 
 CONFIG += strict_c++ c++1z
 
+include (compiler/compiler.pri)
+
 HEADERS += \
 	container/multi_index.hpp \
 	container/multimap_helpers.hpp \
