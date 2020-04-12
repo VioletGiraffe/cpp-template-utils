@@ -103,10 +103,10 @@ ResultType arithmeticMean(Args&&... args)
 	ResultType acc = ResultType(0);
 	size_t n = 0;
 
-	pack::apply([&](auto&& value) {
+	pack::for_value([&](auto&& value) {
 		acc += value;
 		++n;
-	});
+	}, std::forward<Args>(args)...);
 
 	return acc / n;
 }
@@ -117,10 +117,10 @@ ResultType geometricMean(Args&&... args)
 	ResultType acc = ResultType(1);
 	size_t n = 0;
 
-	pack::apply([&](auto&& value) {
+	pack::for_value([&](auto&& value) {
 		acc *= value;
 		++n;
-	});
+	}, std::forward<Args>(args)...);
 
 	return (ResultType)pow(acc, 1.0 / n);
 }
