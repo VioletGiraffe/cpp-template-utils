@@ -20,3 +20,6 @@ struct value_as_type {
 	}
 #endif
 };
+
+template <typename>
+constexpr bool false_v = false;

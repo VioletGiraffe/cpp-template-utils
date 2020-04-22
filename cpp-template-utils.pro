@@ -14,6 +14,7 @@ CONFIG += strict_c++ c++2a
 include (compiler/compiler.pri)
 
 HEADERS += \
+	container/memtrack_allocator.hpp \
 	container/multi_index.hpp \
 	container/multimap_helpers.hpp \
 	math/math.hpp \
