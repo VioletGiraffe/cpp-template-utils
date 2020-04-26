@@ -30,7 +30,7 @@ TEST_CASE("is_equal_comparable", "[extra_type_traits]") {
 	static_assert (is_equal_comparable_v<comparable, comparable>);
 	static_assert (!is_equal_comparable_v<non_comparable, non_comparable>);
 	static_assert (is_equal_comparable_v<comparable, int>);
-#if __cplusplus > 201703L
+#if __cplusplus > 201703L && (!defined __GNUC__ || __GNUC__ >= 10)
 	static_assert (is_equal_comparable_v<int, comparable>);
 #else
 	static_assert (!is_equal_comparable_v<int, comparable>);
