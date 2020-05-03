@@ -52,3 +52,11 @@ struct is_equal_comparable<L, R, std::void_t<decltype(std::declval<L>() == std::
 
 template <typename L, typename R>
 constexpr bool is_equal_comparable_v = is_equal_comparable<L, R>::value;
+
+template <typename T>
+struct type_printer {
+	template <typename U = T>
+	void print() {
+		static_assert(false_v<T>);
+	}
+};
