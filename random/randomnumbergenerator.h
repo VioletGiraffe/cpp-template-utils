@@ -21,3 +21,12 @@ private:
 	GeneratorT _rng;
 	DistributionT<IntType> _distribution;
 };
+
+template <typename IntType, auto minValue = std::numeric_limits<IntType>::min(), auto maxValue = std::numeric_limits<IntType>::max(), template <typename> class DistributionT = std::uniform_int_distribution, typename GeneratorT = std::mt19937_64>
+struct RNG {
+	static IntType next() noexcept
+	{
+		static thread_local RandomNumberGenerator<IntType, DistributionT, GeneratorT> rng{ 0, minValue, maxValue };
+		return rng.rand();
+	}
+};
