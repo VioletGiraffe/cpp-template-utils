@@ -57,6 +57,10 @@ template <typename T>
 struct type_printer {
 	template <typename U = T>
 	void print() {
-		static_assert(false_v<T>);
+		static_assert(fail<U>);
 	}
+
+private:
+	template <typename>
+	static constexpr bool fail = false;
 };
