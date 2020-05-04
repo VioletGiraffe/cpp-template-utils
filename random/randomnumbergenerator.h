@@ -30,3 +30,5 @@ struct RNG {
 		return rng.rand();
 	}
 };
+
+using RandomChar = RNG<int16_t, 33, 126>;
