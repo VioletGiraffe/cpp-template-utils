@@ -12,6 +12,7 @@
 #define TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
 // start catch.hpp
 
+#define _HAS_DEPRECATED_RESULT_OF 1
 
 #define CATCH_VERSION_MAJOR 2
 #define CATCH_VERSION_MINOR 12
@@ -6521,7 +6522,6 @@ namespace Catch {
 // start catch_complete_invoke.hpp
 
 // Invoke with a special case for void
-
 
 #include <type_traits>
 #include <utility>
