@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 template <typename T>
 struct type_wrapper {
 	using type = T;
@@ -23,3 +25,6 @@ struct value_as_type {
 
 template <typename>
 constexpr bool false_v = false;
+
+template <bool condition>
+using sfinae = std::enable_if_t<condition, bool>;
