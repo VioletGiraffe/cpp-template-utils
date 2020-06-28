@@ -37,6 +37,7 @@ HEADERS += \
 	container_tests.hpp \
 	extra_type_traits_tests.hpp \
 	parameter_pack_tests.hpp \
-	tuple_helpers_tests.hpp
+	tuple_helpers_tests.hpp \
+	utils_tests.hpp
 
 SOURCES += tests_main.cpp
