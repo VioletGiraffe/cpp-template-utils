@@ -80,3 +80,17 @@ namespace pack {
 		});
 	}
 }
+
+template <typename... Pack>
+struct type_pack
+{
+	static constexpr size_t type_count = sizeof...(Pack);
+
+	template <auto index>
+	using T = pack::type_by_index<index>;
+
+	template <typename T>
+	static constexpr auto index_of = pack::detail::index_for_type_strict<T, Pack...>();
+
+	using as_tuple = std::tuple<Pack...>;
+};
