@@ -23,7 +23,7 @@ struct value_as_type {
 #endif
 };
 
-template <typename>
+template <typename...>
 constexpr bool false_v = false;
 
 template <bool condition>
