@@ -28,13 +28,3 @@ constexpr bool false_v = false;
 
 template <bool condition>
 using sfinae = std::enable_if_t<condition, bool>;
-
-
-template <typename... Args>
-struct ArgumentsList {
-	template <typename NewArg>
-	using Append = ArgumentsList<Args..., NewArg>;
-
-	template <template <typename...> class T>
-	using Construct = T<Args...>;
-};
