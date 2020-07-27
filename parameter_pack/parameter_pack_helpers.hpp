@@ -87,16 +87,16 @@ struct type_pack
 	static constexpr size_t type_count = sizeof...(Pack);
 
 	template <auto index>
-	using Type = pack::type_by_index<index>;
+	using Type = pack::type_by_index<index, Pack...>;
 
 	template <typename T>
 	static constexpr auto index_of = pack::detail::index_for_type_strict<T, Pack...>();
 
-	template <typename NewArg>
-	using Append = type_pack<Pack..., NewArg>;
+	template <typename... NewArgs>
+	using Append = type_pack<Pack..., NewArgs...>;
 
 	template <template <typename...> class T>
 	using Construct = T<Pack...>;
 
-	using as_tuple = std::tuple<Pack...>;
+	using Tuple = std::tuple<Pack...>;
 };

@@ -12,12 +12,16 @@ struct value_as_type {
 	static constexpr auto value = v;
 	using type = decltype(value);
 
+	constexpr type to_value() const noexcept {
+		return v;
+	}
+
 #ifdef _MSC_VER
-	constexpr operator auto() -> type const {
+	constexpr operator auto() const noexcept -> type {
 		return v;
 	}
 #else
-	constexpr operator type() const {
+	constexpr operator type() const noexcept {
 		return v;
 	}
 #endif
