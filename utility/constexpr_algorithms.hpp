@@ -26,3 +26,16 @@ constexpr void constexpr_for(Functor&& f) noexcept
 {
 	static_for<First, Last>(std::forward<Functor>(f));
 }
+
+template <auto first, auto last, typename Functor, typename ValueType>
+constexpr void constexpr_from_runtime_value(const ValueType value, [[maybe_unused]] Functor&& f) noexcept
+{
+	if (first == value)
+	{
+		f(value_as_type<static_cast<ValueType>(first)>{});
+		return;
+	}
+
+	if constexpr (first != last)
+		constexpr_from_runtime_value<first + 1, last, Functor>(value, std::forward<Functor>(f));
+}
