@@ -5,7 +5,7 @@
 #include <utility>
 
 template <int First, int Last, typename Functor>
-constexpr void static_for([[maybe_unused]] Functor&& f) noexcept
+constexpr void constexpr_for([[maybe_unused]] Functor&& f) noexcept
 {
 	if constexpr (First < Last)
 	{
@@ -17,15 +17,11 @@ constexpr void static_for([[maybe_unused]] Functor&& f) noexcept
 		else
 			f(value_as_type<First>{});
 
-		static_for<First + 1, Last, Functor>(std::forward<Functor>(f));
+		constexpr_for<First + 1, Last, Functor>(std::forward<Functor>(f));
 	}
 }
 
-template <int First, int Last, typename Functor>
-constexpr void constexpr_for(Functor&& f) noexcept
-{
-	static_for<First, Last>(std::forward<Functor>(f));
-}
+#define static_for constexpr_for
 
 template <auto first, auto last, typename Functor, typename ValueType>
 constexpr void constexpr_from_runtime_value(const ValueType value, [[maybe_unused]] Functor&& f) noexcept
