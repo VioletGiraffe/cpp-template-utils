@@ -16,7 +16,7 @@ struct value_as_type {
 		return v;
 	}
 
-#ifdef _MSC_VER
+#if defined _MSC_VER && !defined __clang__
 	constexpr operator auto() const noexcept -> type {
 		return v;
 	}
