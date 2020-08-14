@@ -16,7 +16,7 @@ struct value_as_type {
 		return v;
 	}
 
-#if !defined __clang__ && _MSC_VER < 1927
+#if !defined __clang__ && defined(_MSC_VER) && _MSC_VER < 1927
 	constexpr operator auto() const noexcept -> type {
 		return v;
 	}
