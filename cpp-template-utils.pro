@@ -7,7 +7,7 @@ win*{
 CONFIG += staticlib
 CONFIG -= qt
 
-CONFIG += strict_c++ c++2a
+CONFIG += strict_c++ c++17
 
 *g++*:QMAKE_CXXFLAGS += -fconcepts
 *msvc*:QMAKE_CXXFLAGS += /Zc:char8_t
