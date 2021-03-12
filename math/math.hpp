@@ -29,6 +29,20 @@ T floor(T value, int numDecimalDigits)
 }
 
 template <typename OutType, typename InType>
+typename std::enable_if_t<std::is_integral<InType>::value, OutType> floor(InType value)
+{
+	static_assert(std::is_integral<InType>::value, "This function is only intended for integer values");
+	return static_cast<OutType>(value);
+}
+
+template <typename OutType, typename InType>
+typename std::enable_if_t<std::is_floating_point<InType>::value, OutType> floor(InType value)
+{
+	static_assert(std::is_floating_point<InType>::value, "This function is only intended for floating-point values");
+	return static_cast<OutType>(::floor(value));
+}
+
+template <typename OutType, typename InType>
 typename std::enable_if<std::is_integral<InType>::value, OutType>::type round(InType value)
 {
 	static_assert(std::is_integral<InType>::value, "This function is only intended for integer values");
