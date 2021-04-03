@@ -1,0 +1,13 @@
+{
+	"name": "cpp-template-utils",
+	"version": "1.0.0",
+
+	"export": {
+    "include": ".",
+    "exclude":
+    [
+      "3rdparty",
+      "tests"
+    ]
+  }
+}
