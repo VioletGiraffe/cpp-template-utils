@@ -10,7 +10,7 @@ CONFIG -= qt
 CONFIG += strict_c++ c++2a
 
 *g++*:QMAKE_CXXFLAGS += -fconcepts
-*msvc*:QMAKE_CXXFLAGS += /Zc:char8_t
+*msvc*:QMAKE_CXXFLAGS += /Zc:char8_t /JMC
 
 include (compiler/compiler.pri)
 

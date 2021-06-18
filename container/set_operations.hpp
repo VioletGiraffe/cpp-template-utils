@@ -1,6 +1,7 @@
 #pragma once
 
 #include "std_container_helpers.hpp"
+#include "../utility/extra_type_traits.hpp"
 
 #include <algorithm>
 #include <iterator>
@@ -58,7 +59,7 @@ enum class ItemOrder {
 };
 
 template <ItemOrder order = ItemOrder::DontPreserveOrder, class ContainerType>
-ContainerType uniqueElements(const ContainerType& c)
+[[nodiscard]] ContainerType uniqueElements(const ContainerType& c)
 {
 	using ConstIterator = typename ContainerType::const_iterator;
 
@@ -115,20 +116,20 @@ ContainerType uniqueElements(const ContainerType& c)
 }
 
 template <typename ItemType>
-const std::set<ItemType>& uniqueElements(const std::set<ItemType>& set)
+[[nodiscard]] const std::set<ItemType>& uniqueElements(const std::set<ItemType>& set)
 {
 	return set;
 }
 
 template <typename KeyType, typename ValueType>
-const std::map<KeyType, ValueType>& uniqueElements(const std::map<KeyType, ValueType>& map)
+[[nodiscard]] const std::map<KeyType, ValueType>& uniqueElements(const std::map<KeyType, ValueType>& map)
 {
 	return map;
 }
 
 template <template<typename...> class OutputContainerType, class ContainerType1, class ContainerType2, typename ComparatorType = std::less<>>
 OutputContainerType<typename ContainerType1::value_type, std::allocator<typename ContainerType1::value_type>>
-setTheoreticDifference(
+[[nodiscard]] setTheoreticDifference(
 	ContainerType1 c1,
 	ContainerType2 c2,
 	ComparatorType comp = ComparatorType{})
@@ -151,7 +152,7 @@ struct Diff
 };
 
 template <class ContainerType1, class ContainerType2, class ResultContainerType = ContainerType2>
-Diff<ResultContainerType> calculateDiff(const ContainerType1& a, const ContainerType2& b)
+[[nodiscard]] Diff<ResultContainerType> calculateDiff(const ContainerType1& a, const ContainerType2& b)
 {
 	Diff<ResultContainerType> diff;
 
@@ -170,6 +171,21 @@ Diff<ResultContainerType> calculateDiff(const ContainerType1& a, const Container
 	}
 
 	return diff;
+}
+
+template <template<typename...> class C1, template<typename...> class C2, typename... T1s, typename... T2s, typename SortComp = std::less<>, typename EqualComp = std::equal_to<>>
+[[nodiscard]] bool is_equal_sets(C1<T1s...>& c1, C2<T2s...>& c2, [[maybe_unused]] SortComp&& sortComp = {}, EqualComp&& eqComp = {}) noexcept
+{
+	if (c1.size() != c2.size())
+		return false;
+
+	if constexpr (!std::is_same_v<C1<int>, std::set<int>>)
+		std::sort(begin_to_end(c1), sortComp);
+
+	if constexpr (!std::is_same_v<C2<int>, std::set<int>>)
+		std::sort(begin_to_end(c2), sortComp);
+
+	return std::equal(cbegin_to_end(c1), cbegin_to_end(c2), eqComp);
 }
 
 } // namespace
