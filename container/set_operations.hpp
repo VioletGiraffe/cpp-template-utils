@@ -128,8 +128,8 @@ template <typename KeyType, typename ValueType>
 }
 
 template <template<typename...> class OutputContainerType, class ContainerType1, class ContainerType2, typename ComparatorType = std::less<>>
-OutputContainerType<typename ContainerType1::value_type, std::allocator<typename ContainerType1::value_type>>
-[[nodiscard]] setTheoreticDifference(
+[[nodiscard]] OutputContainerType<typename ContainerType1::value_type, std::allocator<typename ContainerType1::value_type>>
+ setTheoreticDifference(
 	ContainerType1 c1,
 	ContainerType2 c2,
 	ComparatorType comp = ComparatorType{})
