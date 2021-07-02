@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../utility/constexpr_algorithms.hpp"
+#include "../utility/integer_literals.hpp"
 #include "../utility/template_magic.hpp"
 
 #include <optional>
@@ -16,11 +17,11 @@ namespace pack {
 	[[nodiscard]] constexpr std::optional<size_t> index_for_type() noexcept
 	{
 		std::optional<size_t> index;
-		static_for<0, sizeof...(Args)>([&index](auto i) {
+		static_for<0_z, sizeof...(Args)>([&index](auto i) {
 			if (!index) // The index of the first occurrence is stored
 			{
-				if constexpr (std::is_same_v<T, type_by_index < static_cast<size_t>(decltype(i){}), Args... >> )
-					index = static_cast<size_t>(decltype(i){});
+				if constexpr (std::is_same_v<T, type_by_index<static_cast<size_t>(i), Args... >> )
+					index = static_cast<size_t>(i);
 			}
 			});
 
