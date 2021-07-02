@@ -53,6 +53,9 @@ struct is_equal_comparable<L, R, std::void_t<decltype(std::declval<L>() == std::
 template <typename L, typename R>
 constexpr bool is_equal_comparable_v = is_equal_comparable<L, R>::value;
 
+template <typename C>
+constexpr bool is_sortable_container_v = std::is_same_v<typename std::iterator_traits<typename C::iterator>::iterator_category, std::random_access_iterator_tag>;
+
 template <typename T>
 struct type_printer {
 	template <typename U = T>
