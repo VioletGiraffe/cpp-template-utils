@@ -35,6 +35,7 @@ HEADERS += \
 	container/string_helpers.hpp \
 	tuple/tuple_helpers.hpp \
 	parameter_pack/parameter_pack_helpers.hpp \
+	utility/optional_consteval.hpp \
 	utility/template_magic.hpp \
 	utility/integer_literals.hpp \
 	random/randomnumbergenerator.h

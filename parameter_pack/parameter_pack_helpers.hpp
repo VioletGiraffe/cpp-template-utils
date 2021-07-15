@@ -2,9 +2,9 @@
 
 #include "../utility/constexpr_algorithms.hpp"
 #include "../utility/integer_literals.hpp"
+#include "../utility/optional_consteval.hpp"
 #include "../utility/template_magic.hpp"
 
-#include <optional>
 #include <tuple>
 #include <type_traits>
 
@@ -14,23 +14,23 @@ namespace pack {
 	using type_by_index = std::tuple_element_t<index, std::tuple<Args...>>;
 
 	template <typename T, typename... Args>
-	[[nodiscard]] constexpr std::optional<size_t> index_for_type() noexcept
+	[[nodiscard]] consteval optional_consteval<size_t> index_for_type() noexcept
 	{
-		std::optional<size_t> index;
-		static_for<0_z, sizeof...(Args)>([&index](auto i) {
+		optional_consteval<size_t> index;
+		consteval_for_z<0, sizeof...(Args)>([&index](auto i) consteval {
 			if (!index) // The index of the first occurrence is stored
 			{
-				if constexpr (std::is_same_v<T, type_by_index<static_cast<size_t>(i), Args... >> )
+				if constexpr (std::is_same_v<T, type_by_index<static_cast<size_t>(i), Args... >>)
 					index = static_cast<size_t>(i);
 			}
-			});
+		});
 
 		return index;
 	}
 
 	namespace detail {
 		template <typename T, typename... Args>
-		[[nodiscard]] constexpr size_t index_for_type_strict() noexcept
+		[[nodiscard]] consteval size_t index_for_type_strict() noexcept
 		{
 			constexpr auto index = index_for_type<T, Args...>();
 			static_assert (index, "Type not found in pack");
@@ -45,7 +45,7 @@ namespace pack {
 	constexpr bool has_type_v = static_cast<bool>(index_for_type<T, Args...>());
 
 	template <typename T, typename... Args>
-	[[nodiscard]] constexpr size_t type_count() noexcept
+	[[nodiscard]] consteval size_t type_count() noexcept
 	{
 		size_t count = 0;
 		static_for<0, sizeof...(Args)>([&count](auto i) {
@@ -60,7 +60,7 @@ namespace pack {
 	using first_type = type_by_index<0, Args...>;
 
 	template <size_t index, typename... Args>
-	[[nodiscard]] constexpr auto value_by_index(Args&&... args) noexcept {
+	[[nodiscard]] consteval auto value_by_index(Args&&... args) noexcept {
 		return std::get<index>(std::forward_as_tuple(std::forward<Args>(args)...));
 	}
 
@@ -75,7 +75,7 @@ namespace pack {
 	}
 
 	template <typename... Args, typename Functor>
-	constexpr void for_type(Functor&& f) noexcept {
+	consteval void for_type(Functor&& f) noexcept {
 		static_for<0, sizeof...(Args)>([f{ std::forward<Functor>(f) }](auto i) {
 			f(type_wrapper<type_by_index<decltype(i)::value, Args...>>{});
 		});

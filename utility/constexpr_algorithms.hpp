@@ -22,6 +22,23 @@ namespace detail {
 			constexpr_for_T<T, First + 1, Last>(std::forward<Functor>(f));
 		}
 	}
+
+	template <typename T, T First, T Last, typename Functor>
+	consteval void consteval_for_T([[maybe_unused]] Functor&& f) noexcept
+	{
+		if constexpr (First < Last)
+		{
+			if constexpr (std::is_same_v<bool, std::invoke_result_t<Functor()>>)
+			{
+				if (f(value_as_type<First>{}) == false)
+					return;
+			}
+			else
+				f(value_as_type<First>{});
+
+			consteval_for_T<T, First + 1, Last>(std::forward<Functor>(f));
+		}
+	}
 }
 
 template <size_t First, size_t Last, typename Functor>
@@ -34,6 +51,12 @@ template <int First, int Last, typename Functor>
 constexpr void constexpr_for_i([[maybe_unused]] Functor&& f) noexcept
 {
 	detail::constexpr_for_T<int, First, Last>(std::forward<Functor>(f));
+}
+
+template <size_t First, size_t Last, typename Functor>
+consteval void consteval_for_z([[maybe_unused]] Functor&& f) noexcept
+{
+	detail::consteval_for_T<size_t, First, Last>(std::forward<Functor>(f));
 }
 
 namespace detail {

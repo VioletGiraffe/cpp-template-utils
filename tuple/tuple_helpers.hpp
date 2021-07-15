@@ -47,19 +47,19 @@ namespace tuple {
 	}
 
 	template <typename T, typename... Args>
-	[[nodiscard]] constexpr size_t indexForType(const std::tuple<Args...>&) noexcept {
+	[[nodiscard]] consteval size_t indexForType(const std::tuple<Args...>&) noexcept {
 		return ::pack::index_for_type_v<T, Args...>;
 	}
 
 	template <class Tuple>
-	[[nodiscard]] constexpr size_t size(Tuple&&) noexcept
+	[[nodiscard]] consteval size_t size(Tuple&&) noexcept
 	{
 		return tuple_size_v_omnivorous<Tuple>;
 	}
 
 	template<class Tuple, class F>
 	void for_each(Tuple&& tuple, F func) noexcept {
-		static_for<0, tuple_size_v_omnivorous<Tuple>>([&](auto index_wrapper){
+		constexpr_for_z<0, tuple_size_v_omnivorous<Tuple>>([&](auto index_wrapper){
 			::tuple::visit(tuple, index_wrapper, func);
 		});
 	}
