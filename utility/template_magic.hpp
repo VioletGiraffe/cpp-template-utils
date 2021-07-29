@@ -24,7 +24,7 @@ struct value_as_type {
 };
 
 template <typename...>
-constinit bool false_v = false;
+constexpr bool false_v = false;
 
 template <bool condition>
 using sfinae = std::enable_if_t<condition, bool>;
