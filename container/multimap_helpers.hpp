@@ -56,13 +56,7 @@ struct multimap_value_iterator {
 		return std::addressof(_iterator->second);
 	}
 
-	constexpr bool operator==(const multimap_value_iterator& other) const noexcept {
-		return _iterator == other._iterator;
-	}
-
-	constexpr bool operator!=(const multimap_value_iterator& other) const noexcept {
-		return !(*this == other);
-	}
+	constexpr bool operator==(const multimap_value_iterator& other) const noexcept = default;
 
 private:
 	ActualMultimapIterator _iterator;

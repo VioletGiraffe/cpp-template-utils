@@ -10,10 +10,10 @@ template <typename Functor>
 class OnScopeExitExecutor
 {
 public:
-	explicit OnScopeExitExecutor(Functor&& code) : _code(std::forward<Functor>(code))
+	explicit OnScopeExitExecutor(Functor&& code) noexcept : _code(std::forward<Functor>(code))
 	{}
 
-	~OnScopeExitExecutor()
+	~OnScopeExitExecutor() noexcept
 	{
 		_code();
 	}
