@@ -9,8 +9,7 @@ struct type_wrapper {
 
 template <auto v>
 struct value_as_type {
-	static constexpr auto value = v;
-	using type = decltype(value);
+	using type = decltype(v);
 
 #if !defined __clang__ && defined(_MSC_VER) && _MSC_VER < 1927
 	constexpr operator auto() const noexcept -> type {

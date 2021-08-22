@@ -77,7 +77,7 @@ namespace pack {
 	template <typename... Args, typename Functor>
 	consteval void for_type(Functor&& f) noexcept {
 		static_for<0, sizeof...(Args)>([f{ std::forward<Functor>(f) }](auto i) {
-			f(type_wrapper<type_by_index<decltype(i)::value, Args...>>{});
+			f(type_wrapper<type_by_index<i, Args...>>{});
 		});
 	}
 }
