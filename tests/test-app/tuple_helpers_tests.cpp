@@ -1,5 +1,3 @@
-#pragma once
-
 #include "3rdparty/catch2/catch.hpp"
 #include "tuple/tuple_helpers.hpp"
 #include "utility/constexpr_algorithms.hpp"
