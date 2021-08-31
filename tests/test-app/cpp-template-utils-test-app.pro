@@ -32,9 +32,9 @@ linux*|mac*{
 INCLUDEPATH += $${PWD}/../../
 
 SOURCES += \
+	multiindex_tests.cpp \
 	tests_main.cpp \
 	constexpr_algos_tests.cpp \
-	container_tests.cpp \
 	extra_type_traits_tests.cpp \
 	parameter_pack_tests.cpp \
 	tuple_helpers_tests.cpp \

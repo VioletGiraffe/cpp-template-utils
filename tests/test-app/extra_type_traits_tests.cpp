@@ -1,5 +1,3 @@
-#pragma once
-
 #include "3rdparty/catch2/catch.hpp"
 #include "utility/extra_type_traits.hpp"
 

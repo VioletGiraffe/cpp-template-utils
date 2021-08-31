@@ -1,7 +1,7 @@
-#pragma once
-
 #include "3rdparty/catch2/catch.hpp"
 #include "utility/data_buffer.hpp"
+
+#include <string.h>
 
 TEST_CASE("data_buffer", "[data_buffer]") {
 

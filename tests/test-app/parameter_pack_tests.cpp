@@ -1,5 +1,3 @@
-#pragma once
-
 #include "3rdparty/catch2/catch.hpp"
 #include "parameter_pack/parameter_pack_helpers.hpp"
 

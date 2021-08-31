@@ -9,6 +9,7 @@
 *.sln
 *.vcxproj*
 *.VC.db
+*.o
 Makefile*
 
 # User-specific files (MonoDevelop/Xamarin Studio)
