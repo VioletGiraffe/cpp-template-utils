@@ -19,7 +19,7 @@ install:
   - dir "C:\Program Files (x86)\Windows Kits\10\include\"
   - dir "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Preview"
   - '"C:\Qt\%qt%\bin\qmake.exe" -v'
-  - call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Preview\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && cl.exe && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r
+  - call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Preview\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && cl.exe && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r
 
 build_script:
   - dir
