@@ -31,13 +31,11 @@ linux*|mac*{
 
 INCLUDEPATH += $${PWD}/../../
 
-
-HEADERS += \
-	constexpr_algos_tests.hpp \
-	container_tests.hpp \
-	extra_type_traits_tests.hpp \
-	parameter_pack_tests.hpp \
-	tuple_helpers_tests.hpp \
-	utils_tests.hpp
-
-SOURCES += tests_main.cpp
+SOURCES += \
+	tests_main.cpp \
+	constexpr_algos_tests.cpp \
+	container_tests.cpp \
+	extra_type_traits_tests.cpp \
+	parameter_pack_tests.cpp \
+	tuple_helpers_tests.cpp \
+	utils_tests.cpp

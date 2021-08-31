@@ -42,11 +42,14 @@ TEST_CASE("pack::type_count", "[pack]") {
 	CHECK(pack::type_count<class S, float, std::string, int, std::string, std::string&, int, class S>() == 1);
 }
 
-TEST_CASE("pack::value_by_index", "[pack]") {
-	CHECK(pack::value_by_index<0>(std::string{"abc"}) == "abc");
-	CHECK(pack::value_by_index<0>(3.14f, std::string{"abc"}, -600) == 3.14f);
-	CHECK(pack::value_by_index<1>(3.14f, std::string{"abc"}, -600) == "abc");
-	CHECK(pack::value_by_index<2>(3.14f, std::string{"abc"}, -600) == -600);
+TEST_CASE("pack::value_by_index at compile time", "[pack]") {
+	CHECK(pack::value_by_index<0>('a') == 'a');
+	CHECK(pack::value_by_index<0>(3.14f, 'a', -600) == 3.14f);
+	CHECK(pack::value_by_index<1>(3.14f, 'a', -600) == 'a');
+	CHECK(pack::value_by_index<2>(3.14f, 'a', -600) == -600);
+
+	constexpr auto val = pack::value_by_index<0>(3.14f, 'a', -600);
+	static_assert(val == 3.14f);
 }
 
 TEST_CASE("pack::for_value", "[pack]") {
