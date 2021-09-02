@@ -5,7 +5,7 @@
 #include <array>
 #include <numeric>
 
-TEST_CASE("static_for_z (size_t)", "[constexpr-algos]")
+TEST_CASE("constexpr_for_z (size_t)", "[constexpr-algos]")
 {
 	// Range backwards
 	{
@@ -49,7 +49,7 @@ TEST_CASE("static_for_z (size_t)", "[constexpr-algos]")
 	}
 }
 
-TEST_CASE("static_for<int>", "[constexpr-algos]")
+TEST_CASE("constexpr_for_z<int>", "[constexpr-algos]")
 {
 	// Range backwards
 	{
@@ -143,7 +143,7 @@ TEST_CASE("static_for<int>", "[constexpr-algos]")
 	}
 }
 
-TEST_CASE("static_for_z - compile-time operation", "[constexpr-algos]")
+TEST_CASE("constexpr_for_z - compile-time operation", "[constexpr-algos]")
 {
 	constexpr_for_z<0, 1>([](auto index) {
 		static_assert(std::is_same_v<typename decltype(index)::type, size_t>);
@@ -171,4 +171,21 @@ TEST_CASE("static_for_z - compile-time operation", "[constexpr-algos]")
 	});
 
 	SUCCEED();
+}
+
+template <class F>
+consteval void eval(F&& f) {
+	f();
+}
+
+TEST_CASE("constexpr_for_z -> bool - early exit at runtime", "[constexpr-algos]")
+{
+	std::vector<size_t> v;
+	constexpr_for_z<5, 200>([&v](auto index) -> bool {
+		static_assert(std::is_same_v<typename decltype(index)::type, size_t>);
+		v.push_back(index);
+		return index < 7 ? true : false;
+	});
+
+	CHECK(v == std::vector<size_t>{5, 6, 7});
 }

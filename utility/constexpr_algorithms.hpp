@@ -11,13 +11,14 @@ namespace detail {
 	{
 		if constexpr (First < Last)
 		{
-			if constexpr (std::is_same_v<bool, std::invoke_result_t<Functor()>>)
+			using I = value_as_type<First>;
+			if constexpr (std::is_same_v<bool, std::invoke_result_t<Functor, I>>)
 			{
-				if (f(value_as_type<First>{}) == false)
+				if (f(I{}) == false)
 					return;
 			}
 			else
-				f(value_as_type<First>{});
+				f(I{});
 
 			constexpr_for_T<T, First + 1, Last>(std::forward<Functor>(f));
 		}
@@ -28,13 +29,14 @@ namespace detail {
 	{
 		if constexpr (First < Last)
 		{
-			if constexpr (std::is_same_v<bool, std::invoke_result_t<Functor()>>)
+			using I = value_as_type<First>;
+			if constexpr (std::is_same_v<bool, std::invoke_result_t<Functor, I>>)
 			{
-				if (f(value_as_type<First>{}) == false)
+				if constexpr (f(I{}) == false)
 					return;
 			}
 			else
-				f(value_as_type<First>{});
+				f(I{});
 
 			consteval_for_T<T, First + 1, Last>(std::forward<Functor>(f));
 		}
