@@ -18,6 +18,7 @@ HEADERS += \
 	container/memtrack_allocator.hpp \
 	container/multi_index.hpp \
 	container/multimap_helpers.hpp \
+	container/tracking_allocator.hpp \
 	container/vector2d.hpp \
 	math/math.hpp \
 	container/set_operations.hpp \
