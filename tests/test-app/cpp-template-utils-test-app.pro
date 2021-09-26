@@ -20,7 +20,7 @@ win*{
 }
 
 linux*|mac*{
-	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
+	QMAKE_CXXFLAGS_WARN_ON = -Wall
 	QMAKE_CXXFLAGS += -std=c++2a
 
 	Release:DEFINES += NDEBUG=1

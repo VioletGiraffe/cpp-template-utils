@@ -21,11 +21,21 @@ struct TrackingAllocator {
 	{
 	}
 
+	constexpr TrackingAllocator& operator=(const TrackingAllocator& other) noexcept = delete;
+
 	constexpr TrackingAllocator select_on_container_copy_construction() const noexcept {
 		return TrackingAllocator{};
 	}
 
-	constexpr TrackingAllocator& operator=(const TrackingAllocator& other) noexcept = delete;
+	constexpr bool operator=(const TrackingAllocator&) const noexcept
+	{
+		return true;
+	}
+
+	constexpr bool operator!=(const TrackingAllocator& other) const noexcept
+	{
+		return !operator=(other);
+	}
 
 	[[nodiscard]] pointer allocate(std::size_t n) {
 		bytes_ += sizeof(T) * n;
