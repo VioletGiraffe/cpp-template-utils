@@ -45,9 +45,7 @@
 
 #if defined _MSC_VER
 
-#define DISABLE_COMPILER_WARNINGS \
-	STORE_COMPILER_WARNINGS \
-	COMPILER_PRAGMA(warning(push, 0)) // Set /W0
+#define DISABLE_COMPILER_WARNINGS COMPILER_PRAGMA(warning(push, 0)) // Set /W0
 
 #elif defined __clang__ || defined __GNUC__ || defined __GNUG__
 
