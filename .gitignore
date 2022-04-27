@@ -25,6 +25,7 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
+tests/.qtc_clangd/
 
 # Visual Studio 2015 cache/options directory
 .vs/

@@ -1,0 +1,77 @@
+name: CI
+
+on: [push, pull_request]
+
+env:
+  # Path to the solution file relative to the root of the project.
+  SOLUTION_FILE_PATH: .
+
+  # Configuration type to build.
+  # You can convert this to a build matrix if you need coverage of multiple configuration types.
+  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  build:
+    name: Build & test on ${{ matrix.os }} with ${{ matrix.compiler }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-11, windows-2019]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+
+    - name: Windows - setup MSBuild
+      if: startsWith(matrix.os, 'windows')
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Windows
+      if: startsWith(matrix.os, 'windows')
+      shell: cmd
+      run: |
+        %Qt5_DIR%\bin\qmake.exe -v
+        dir "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC"
+        set QTDIR64=%Qt5_DIR%
+        pushd tests
+        %Qt5_DIR%\bin\qmake.exe -tp vc -r
+        popd
+
+    - name: Mac
+      if: startsWith(matrix.os, 'macos')
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        clang --version
+        pushd tests
+        $Qt5_DIR/bin/qmake -r
+        popd
+
+    - name: Linux
+      if: startsWith(matrix.os, 'ubuntu')
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        sudo apt update -y; sudo apt install -qq gcc-10 g++-10
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 50
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 50
+        g++ --version
+
+        pushd tests
+        $Qt5_DIR/bin/qmake -r
+        popd
+
+    - name: Test run
+      if: startsWith(matrix.os, 'macos')
+      run: ./tests/bin/tests.app/Contents/MacOS/tests
+      
+    - name: Test run
+      if: startsWith(matrix.os, 'ubuntu')
+      run: ./tests/bin/tests
+
+    - name: Test run
+      if: startsWith(matrix.os, 'widows')
+      run: ./tests/bin/tests.exe

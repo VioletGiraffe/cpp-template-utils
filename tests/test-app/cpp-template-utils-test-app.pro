@@ -37,6 +37,5 @@ SOURCES += \
 	constexpr_algos_tests.cpp \
 	extra_type_traits_tests.cpp \
 	parameter_pack_tests.cpp \
-	tracking_allocator.cpp \
 	tuple_helpers_tests.cpp \
 	utils_tests.cpp
