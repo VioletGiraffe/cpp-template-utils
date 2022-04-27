@@ -37,8 +37,8 @@ jobs:
       run: |
         %Qt5_DIR%\bin\qmake.exe -v
         dir "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC"
-        set QTDIR64=%Qt5_DIR%
         pushd tests
+        call "%programfiles(x86)%\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
         %Qt5_DIR%\bin\qmake.exe -tp vc -r
         msbuild /t:Build /p:Configuration=Release;PlatformToolset=v142
         popd
