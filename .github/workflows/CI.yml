@@ -40,6 +40,7 @@ jobs:
         set QTDIR64=%Qt5_DIR%
         pushd tests
         %Qt5_DIR%\bin\qmake.exe -tp vc -r
+        msbuild /t:Build /p:Configuration=Release;PlatformToolset=v142
         popd
 
     - name: Mac
@@ -49,6 +50,7 @@ jobs:
         clang --version
         pushd tests
         $Qt5_DIR/bin/qmake -r
+        make -j
         popd
 
     - name: Linux
@@ -62,6 +64,7 @@ jobs:
 
         pushd tests
         $Qt5_DIR/bin/qmake -r
+        make -j
         popd
 
     - name: Test run
