@@ -23,6 +23,7 @@ HEADERS += \
 	container/set_operations.hpp \
 	container/iterator_helpers.hpp \
 	container/algorithms.hpp \
+	string/string_helpers.hpp \
 	utility/data_buffer.hpp \
 	utility/extra_type_traits.hpp \
 	utility/memory_cast.hpp \
