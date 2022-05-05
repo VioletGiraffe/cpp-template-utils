@@ -12,9 +12,9 @@ CONFIG += strict_c++ c++2a
 *g++*:QMAKE_CXXFLAGS += -fconcepts -std=c++2a
 *msvc*:QMAKE_CXXFLAGS += /Zc:char8_t /JMC
 
-include (compiler/compiler.pri)
 
 HEADERS += \
+	compiler/compiler_warnings_control.h \
 	container/multi_index.hpp \
 	container/multimap_helpers.hpp \
 	container/tracking_allocator.hpp \
@@ -37,7 +37,8 @@ HEADERS += \
 	container/string_helpers.hpp \
 	tuple/tuple_helpers.hpp \
 	parameter_pack/parameter_pack_helpers.hpp \
+	random/randomnumbergenerator.h \
+	regex/regex_helpers.hpp \
 	utility/optional_consteval.hpp \
 	utility/template_magic.hpp \
-	utility/integer_literals.hpp \
-	random/randomnumbergenerator.h
+	utility/integer_literals.hpp
