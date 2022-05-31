@@ -22,8 +22,8 @@ struct value_as_type {
 #endif
 };
 
-template <typename...>
-constexpr bool false_v = false;
+#define FAIL_COMPILATION static_assert(![]{})
+#define FAIL_WITH_MSG(msg) static_assert(![]{}, msg)
 
 template <bool condition>
 using sfinae = std::enable_if_t<condition, bool>;
