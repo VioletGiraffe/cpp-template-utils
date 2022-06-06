@@ -6,6 +6,7 @@ win*{
 
 CONFIG += staticlib
 CONFIG -= qt
+CONFIG -= flat
 
 CONFIG += strict_c++ c++2a
 
