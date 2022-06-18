@@ -33,7 +33,7 @@ namespace pack {
 		[[nodiscard]] consteval size_t index_for_type_strict() noexcept
 		{
 			constexpr auto index = index_for_type<T, Args...>();
-			static_assert (index, "Type not found in pack");
+			static_assert (index.has_value(), "Type not found in pack");
 			return *index;
 		}
 	}

@@ -27,3 +27,11 @@ struct value_as_type {
 
 template <bool condition>
 using sfinae = std::enable_if_t<condition, bool>;
+
+template <typename T>
+struct type_printer {
+	template <typename U = T>
+	void print() {
+		FAIL_COMPILATION;
+	}
+};

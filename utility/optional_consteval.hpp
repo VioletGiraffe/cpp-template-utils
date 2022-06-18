@@ -1,5 +1,8 @@
 #pragma once
 
+// std::optional has very limited constexpr support C++20 and earlier standards.
+// This is a consteval class that implements std::optional interface.
+
 template <typename T>
 class optional_consteval {
 public:
@@ -19,10 +22,13 @@ public:
 
 	[[nodiscard]] consteval bool operator==(const optional_consteval& other) const noexcept
 	{
-		if (!_valid || !other._valid)
+		// Empty optionals should be equal (even of different but compatible template types, but we don't need to handle that).
+		if (!_valid != other._valid)
 			return false;
-
-		return _value == other._value;
+		else if (!_valid)
+			return true;
+		else
+			return _value == other._value;
 	}
 
 	[[nodiscard]] consteval bool operator==(const T& value) const noexcept
