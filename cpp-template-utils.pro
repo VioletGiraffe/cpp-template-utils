@@ -35,7 +35,6 @@ HEADERS += \
 	utility/constexpr_algorithms.hpp \
 	container/std_container_helpers.hpp \
 	container/ordered_containers.hpp \
-	container/string_helpers.hpp \
 	tuple/tuple_helpers.hpp \
 	parameter_pack/parameter_pack_helpers.hpp \
 	random/randomnumbergenerator.h \
