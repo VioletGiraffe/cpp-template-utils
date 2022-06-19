@@ -167,15 +167,10 @@ TEST_CASE("constexpr_for_z - compile-time operation", "[constexpr-algos]")
 		else if constexpr (index == 2)
 			static_assert(std::get<index>(t) == 15);
 		else
-			static_assert(false_v<decltype(index)>, "This shouldn't happen!");
+			FAIL_COMPILATION_WITH_MSG("This shouldn't happen!");
 	});
 
 	SUCCEED();
-}
-
-template <class F>
-consteval void eval(F&& f) {
-	f();
 }
 
 TEST_CASE("constexpr_for_z -> bool - early exit at runtime", "[constexpr-algos]")

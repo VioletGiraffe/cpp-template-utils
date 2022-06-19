@@ -36,3 +36,15 @@ GCC_CONSTEXPR_WORKAROUND std::basic_string<CharT, CharTraits, Alloc>& operator<<
 {
 	return str += std::to_string(value);
 }
+
+template <class CharT, class CharTraits, class Alloc, typename T, std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>>* = nullptr>
+GCC_CONSTEXPR_WORKAROUND std::basic_string<CharT, CharTraits, Alloc>& operator+=(std::basic_string<CharT, CharTraits, Alloc>& str, const T value)
+{
+	return str << value;
+}
+
+template <class CharT, class CharTraits, class Alloc, typename T, std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>>* = nullptr>
+GCC_CONSTEXPR_WORKAROUND std::basic_string<CharT, CharTraits, Alloc> operator+(std::basic_string<CharT, CharTraits, Alloc> str, const T value)
+{
+	return str << value;
+}

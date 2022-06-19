@@ -3,6 +3,7 @@
 #include "utility/constexpr_algorithms.hpp"
 #include "utility/extra_type_traits.hpp"
 #include "compiler/compiler_warnings_control.h"
+#include "string/string_helpers.hpp"
 
 #include <limits>
 #include <string>
@@ -20,7 +21,9 @@ TEST_CASE("index_for_type", "[tuple]") {
 }
 
 TEST_CASE("visit", "[tuple]") {
-	SECTION("const") {
+	{
+		// Const
+
 		constexpr std::tuple reference{-1, std::numeric_limits<uint64_t>::max(), 1.7f};
 		tuple::visit(reference, 0, [](auto&& item){
 			CHECK(item == -1);
@@ -37,7 +40,7 @@ TEST_CASE("visit", "[tuple]") {
 		});
 	}
 
-	SECTION("mutable") {
+	{ // Mutable
 		std::tuple reference{-1, std::numeric_limits<uint64_t>::max(), 1.7f};
 		const auto r2 = reference;
 		tuple::visit(reference, 0, [](auto&& item){
@@ -70,17 +73,9 @@ TEST_CASE("visit", "[tuple]") {
 	}
 }
 
-std::string& operator+=(std::string& str, int i) {
-	return str += std::to_string(i);
-}
-
-std::string operator+(const std::string& str, int i) {
-	return str + std::to_string(i);
-}
-
 TEST_CASE("for_each", "[tuple]") {
 
-	SECTION("const") {
+	{ // Const
 		const std::tuple reference{-1, std::numeric_limits<uint64_t>::max(), std::string{"abc"}, 1.7f};
 		using VariantType = std::variant<int, uint64_t, std::string, float>;
 		std::vector<VariantType> items;
@@ -94,7 +89,7 @@ TEST_CASE("for_each", "[tuple]") {
 		});
 	}
 
-	SECTION("mutable") {
+	{ // Mutable
 		std::tuple reference{-1, std::numeric_limits<uint64_t>::max(), std::string{"abc"}, 3.14f};
 		const auto r2 = reference;
 

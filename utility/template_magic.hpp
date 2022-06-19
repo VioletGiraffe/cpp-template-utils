@@ -23,7 +23,7 @@ struct value_as_type {
 };
 
 #define FAIL_COMPILATION static_assert(![]{})
-#define FAIL_WITH_MSG(msg) static_assert(![]{}, msg)
+#define FAIL_COMPILATION_WITH_MSG(msg) static_assert(![]{}, msg)
 
 template <bool condition>
 using sfinae = std::enable_if_t<condition, bool>;

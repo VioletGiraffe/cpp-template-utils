@@ -51,7 +51,7 @@ TEST_CASE("pack::value_by_index at compile time", "[pack]") {
 }
 
 TEST_CASE("pack::for_value", "[pack]") {
-	SECTION ("0 items") {
+	{ // 0 items
 		std::vector<int> v;
 		pack::for_value([&](auto&& value){
 			v.push_back(value);
@@ -60,7 +60,7 @@ TEST_CASE("pack::for_value", "[pack]") {
 		CHECK(v.empty());
 	}
 
-	SECTION ("1 item") {
+	{ // 1 item
 		std::vector<int> v;
 		pack::for_value([&](auto&& value){
 			v.push_back(value);
@@ -70,7 +70,7 @@ TEST_CASE("pack::for_value", "[pack]") {
 		CHECK(v[0] == -116);
 	}
 
-	SECTION ("More items") {
+	{ // More items
 		using VariantType = std::variant<float, std::string, int, double>;
 		std::vector<VariantType> v;
 
