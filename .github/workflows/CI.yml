@@ -76,5 +76,5 @@ jobs:
       run: ./tests/bin/tests
 
     - name: Test run
-      if: startsWith(matrix.os, 'widows')
+      if: startsWith(matrix.os, 'windows')
       run: ./tests/bin/tests.exe
