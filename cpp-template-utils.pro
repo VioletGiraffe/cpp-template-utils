@@ -25,7 +25,6 @@ HEADERS += \
 	container/iterator_helpers.hpp \
 	container/algorithms.hpp \
 	string/string_helpers.hpp \
-	utility/data_buffer.hpp \
 	utility/extra_type_traits.hpp \
 	utility/memory_cast.hpp \
 	utility/named_type_wrapper.hpp \
@@ -40,5 +39,6 @@ HEADERS += \
 	random/randomnumbergenerator.h \
 	regex/regex_helpers.hpp \
 	utility/optional_consteval.hpp \
+	utility/static_data_buffer.hpp \
 	utility/template_magic.hpp \
 	utility/integer_literals.hpp
