@@ -59,8 +59,8 @@ namespace tuple {
 
 	template<class Tuple, class F>
 	void for_each(Tuple&& tuple, F func) noexcept {
-		constexpr_for_z<0, tuple_size_v_omnivorous<Tuple>>([&](auto index_wrapper){
-			::tuple::visit(tuple, index_wrapper, func);
+		static_for<0, tuple_size_v_omnivorous<Tuple>>([&]<auto I>() {
+			::tuple::visit(tuple, I, func);
 		});
 	}
 }

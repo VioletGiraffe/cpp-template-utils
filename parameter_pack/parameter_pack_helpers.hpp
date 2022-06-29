@@ -17,11 +17,11 @@ namespace pack {
 	[[nodiscard]] consteval optional_consteval<size_t> index_for_type() noexcept
 	{
 		optional_consteval<size_t> index;
-		consteval_for_z<0, sizeof...(Args)>([&index](auto i) consteval {
+		consteval_for<0, sizeof...(Args)>([&index]<size_t I>() consteval {
 			if (!index) // The index of the first occurrence is stored
 			{
-				if constexpr (std::is_same_v<T, type_by_index<static_cast<size_t>(i), Args... >>)
-					index = static_cast<size_t>(i);
+				if constexpr (std::is_same_v<T, type_by_index<I, Args... >>)
+					index = I;
 			}
 		});
 
@@ -48,8 +48,8 @@ namespace pack {
 	[[nodiscard]] consteval size_t type_count() noexcept
 	{
 		size_t count = 0;
-		static_for<0, sizeof...(Args)>([&count](auto i) {
-			if constexpr (std::is_same_v<T, type_by_index < static_cast<size_t>(decltype(i){}), Args... >> )
+		static_for<0, sizeof...(Args)>([&count]<size_t I>() {
+			if constexpr (std::is_same_v<T, type_by_index<I, Args...>>)
 				++count;
 			});
 
@@ -76,7 +76,7 @@ namespace pack {
 
 	template <typename... Args, typename Functor>
 	consteval void for_type(Functor&& f) noexcept {
-		static_for<0, sizeof...(Args)>([f{ std::forward<Functor>(f) }](auto i) {
+		static_for<0, sizeof...(Args)>([f{ std::forward<Functor>(f) }]<auto i>() {
 			f(type_wrapper<type_by_index<i, Args...>>{});
 		});
 	}
