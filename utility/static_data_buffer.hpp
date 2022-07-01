@@ -24,7 +24,7 @@ public:
 		return true;
 	}
 
-	constexpr bool read(void* dest, const size_t n) const noexcept
+	constexpr bool read(void* dest, const size_t n) noexcept
 	{
 		if (_pos + n > _actualSize) [[unlikely]]
 			return false;
@@ -66,5 +66,25 @@ public:
 	[[nodiscard]] constexpr const value_type* data() const & noexcept
 	{
 		return _data.data();
+	}
+
+	[[nodiscard]] constexpr auto begin() & noexcept
+	{
+		return _data.begin();
+	}
+
+	[[nodiscard]] constexpr auto begin() const & noexcept
+	{
+		return _data.begin();
+	}
+
+	[[nodiscard]] constexpr auto end() & noexcept
+	{
+		return begin() + _actualSize;
+	}
+
+	[[nodiscard]] constexpr auto end() const& noexcept
+	{
+		return begin() + _actualSize;
 	}
 };

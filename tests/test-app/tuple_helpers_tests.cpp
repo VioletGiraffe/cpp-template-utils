@@ -84,8 +84,8 @@ TEST_CASE("for_each", "[tuple]") {
 			items.emplace_back(item);
 		});
 
-		static_for<0, std::tuple_size_v<decltype(reference)>>([&](auto index_wrapper){
-			CHECK(VariantType{std::get<index_wrapper>(reference)} == items[index_wrapper]);
+		static_for<0, std::tuple_size_v<decltype(reference)>>([&]<auto index>{
+			CHECK(VariantType{std::get<index>(reference)} == items[index]);
 		});
 	}
 
@@ -101,12 +101,12 @@ TEST_CASE("for_each", "[tuple]") {
 				item += 1;
 		});
 
-		static_for<0, std::tuple_size_v<decltype(reference)>>([&](auto index_wrapper){
-			CHECK(std::get<index_wrapper>(reference) != std::get<index_wrapper>(r2));
-			if constexpr (index_wrapper == 3)
-				CHECK(std::get<index_wrapper>(reference) == std::get<index_wrapper>(r2) + 2.5f);
+		static_for<0, std::tuple_size_v<decltype(reference)>>([&]<auto index>() {
+			CHECK(std::get<index>(reference) != std::get<index>(r2));
+			if constexpr (index == 3)
+				CHECK(std::get<index>(reference) == std::get<index>(r2) + 2.5f);
 			else
-				CHECK(std::get<index_wrapper>(reference) == std::get<index_wrapper>(r2) + 1);
+				CHECK(std::get<index>(reference) == std::get<index>(r2) + 1);
 		});
 
 		CHECK(std::get<2>(reference) == "abc1");

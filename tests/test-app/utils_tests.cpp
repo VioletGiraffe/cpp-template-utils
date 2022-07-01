@@ -1,58 +1,52 @@
 #include "3rdparty/catch2/catch.hpp"
-#include "utility/data_buffer.hpp"
-
-#include <string.h>
+#include "utility/static_data_buffer.hpp"
 
 TEST_CASE("data_buffer", "[data_buffer]") {
 
 	{
-		data_buffer buf;
+		static_data_buffer<1024> buf;
 		CHECK(buf.size() == 0);
 		CHECK(buf.begin() == buf.end());
-		CHECK(buf.span().size_bytes() == 0);
-		CHECK(buf.span().empty());
-	}
+		CHECK(buf.pos() == 0);
 
-	{
-		const char hello[] = {0, 'H', 'e', 0, 0, 'l', 'l', 'o'};
-		data_buffer buf{hello, std::size(hello)};
-		REQUIRE(std::equal(buf.begin(), buf.end(), std::begin(hello), std::end(hello)));
-		REQUIRE(std::equal(buf.span().begin(), buf.span().end(), std::begin(hello), std::end(hello)));
-		REQUIRE(buf.size() == buf.span().size_bytes());
-		REQUIRE(buf.size() == buf.span().size());
-		REQUIRE(buf.size() == std::size(hello));
-		REQUIRE(::memcmp(buf.data(), hello, std::size(hello)) == 0);
-		for (size_t i = 0; i < std::size(hello); ++i)
-			REQUIRE(buf[i] == hello[i]);
-	}
+		buf.reserve(100);
+		CHECK(buf.size() == 100);
+		CHECK(buf.begin() != buf.end());
+		CHECK(buf.pos() == 0);
 
-	{
-		constexpr char hello[] = {0, 'H', 'e', 0, 0, 'l', 'l', 'o'};
-		data_buffer buf{std::size(hello)};
-		::memcpy(buf.data(), hello, buf.size());
-		REQUIRE(std::equal(buf.begin(), buf.end(), std::begin(hello), std::end(hello)));
-		REQUIRE(std::equal(buf.span().begin(), buf.span().end(), std::begin(hello), std::end(hello)));
-		REQUIRE(buf.size() == buf.span().size_bytes());
-		REQUIRE(buf.size() == buf.span().size());
-		REQUIRE(buf.size() == std::size(hello));
-		REQUIRE(::memcmp(buf.constData(), hello, std::size(hello)) == 0);
-		for (size_t i = 0; i < std::size(hello); ++i)
-			REQUIRE(buf[i] == hello[i]);
-	}
+		for (auto& byte : buf)
+			byte = std::byte{ 'A' };
 
-	{
-		constexpr char hello[] = {0, 'H', 'e', 0, 0, 'l', 'l', 'o'};
-		data_buffer buf{std::size(hello)};
-		for (size_t i = 0; i < std::size(hello); ++i)
-			buf[i] = hello[i];
+		CHECK(buf.size() == 100);
+		CHECK(buf.pos() == 0);
 
-		REQUIRE(std::equal(buf.begin(), buf.end(), std::begin(hello), std::end(hello)));
-		REQUIRE(std::equal(buf.span().begin(), buf.span().end(), std::begin(hello), std::end(hello)));
-		REQUIRE(buf.size() == buf.span().size_bytes());
-		REQUIRE(buf.size() == buf.span().size());
-		REQUIRE(buf.size() == std::size(hello));
-		REQUIRE(::memcmp(buf.constData(), hello, std::size(hello)) == 0);
-		for (size_t i = 0; i < std::size(hello); ++i)
-			REQUIRE(buf[i] == hello[i]);
+		bool eq = true;
+		for (size_t i = 0; i < buf.size(); ++i)
+		{
+			if (buf.data()[i] != std::byte{ 'A' })
+			{
+				eq = false;
+				return;
+			}
+		}
+
+		REQUIRE(eq);
+
+		buf.seek(buf.size());
+		CHECK(buf.size() == 100);
+		CHECK(buf.pos() == 100);
+
+		static constexpr const char* text = "1234567890";
+		CHECK(buf.write(text, 10));
+		CHECK(buf.size() == 110);
+		CHECK(buf.pos() == 110);
+
+		buf.seek(100);
+		CHECK(buf.size() == 110);
+		CHECK(buf.pos() == 100);
+
+		char test[10];
+		CHECK(buf.read(test, 10));
+		CHECK(memcmp(test, text, 10) == 0);
 	}
 }
