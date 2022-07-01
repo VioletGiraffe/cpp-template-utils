@@ -20,59 +20,6 @@ TEST_CASE("index_for_type", "[tuple]") {
 	CHECK(tuple::indexForType<std::tuple<>>(std::tuple<std::tuple<>, int, float, std::tuple<>>{}) == 0);
 }
 
-TEST_CASE("visit", "[tuple]") {
-	{
-		// Const
-
-		constexpr std::tuple reference{-1, std::numeric_limits<uint64_t>::max(), 1.7f};
-		tuple::visit(reference, 0, [](auto&& item){
-			CHECK(item == -1);
-		});
-
-		tuple::visit(reference, 1, [](auto&& item){
-			CHECK(item == std::numeric_limits<uint64_t>::max());
-			CHECK(item != std::numeric_limits<uint64_t>::max() - 1);
-		});
-
-		tuple::visit(reference, 2, [](auto&& item){
-			CHECK(item == 1.7f);
-			CHECK(item != 1.65f);
-		});
-	}
-
-	{ // Mutable
-		std::tuple reference{-1, std::numeric_limits<uint64_t>::max(), 1.7f};
-		const auto r2 = reference;
-		tuple::visit(reference, 0, [](auto&& item){
-			DISABLE_COMPILER_WARNINGS
-			item = -1043;
-			RESTORE_COMPILER_WARNINGS
-		});
-
-		tuple::visit(reference, 1, [](auto&& item){
-			DISABLE_COMPILER_WARNINGS
-			item = std::numeric_limits<uint64_t>::max() - 5;
-			RESTORE_COMPILER_WARNINGS
-		});
-
-		tuple::visit(reference, 2, [](auto&& item){
-			DISABLE_COMPILER_WARNINGS
-			item = 3.14159f;
-			RESTORE_COMPILER_WARNINGS
-		});
-
-		static_assert(std::is_signed_v<std::tuple_element_t<0, decltype(reference)>>);
-		CHECK(std::get<0>(reference) == -1043);
-		CHECK(std::get<1>(reference) == std::numeric_limits<uint64_t>::max() - 5);
-
-		CHECK(std::get<2>(reference) == 3.14159f);
-		CHECK(std::get<2>(reference) != 3.14f);
-
-		CHECK(reference == std::tuple{-1043, std::numeric_limits<uint64_t>::max() - 5, 3.14159f});
-		CHECK(reference != r2);
-	}
-}
-
 TEST_CASE("for_each", "[tuple]") {
 
 	{ // Const
