@@ -58,7 +58,7 @@ public:
 		return _pos;
 	}
 
-	[[nodiscard]] constexpr void seek(const size_t pos) & noexcept
+	constexpr void seek(const size_t pos) & noexcept
 	{
 		_pos = pos;
 	}

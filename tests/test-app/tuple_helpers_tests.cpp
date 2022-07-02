@@ -31,7 +31,7 @@ TEST_CASE("for_each", "[tuple]") {
 			items.emplace_back(item);
 		});
 
-		static_for<0, std::tuple_size_v<decltype(reference)>>([&]<auto index>{
+		static_for<0, std::tuple_size_v<decltype(reference)>>([&]<auto index> (){
 			CHECK(VariantType{std::get<index>(reference)} == items[index]);
 		});
 	}
