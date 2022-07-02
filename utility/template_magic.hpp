@@ -2,11 +2,6 @@
 
 #include <type_traits>
 
-template <typename T>
-struct type_wrapper {
-	using type = T;
-};
-
 #define FAIL_COMPILATION static_assert(![]{})
 #define FAIL_COMPILATION_WITH_MSG(msg) static_assert(![]{}, msg)
 
