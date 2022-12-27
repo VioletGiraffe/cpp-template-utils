@@ -68,6 +68,11 @@ public:
 		return _data.data();
 	}
 
+	[[nodiscard]] constexpr value_type* data() & noexcept
+	{
+		return _data.data();
+	}
+
 	[[nodiscard]] constexpr auto begin() & noexcept
 	{
 		return _data.begin();
