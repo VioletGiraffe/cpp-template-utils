@@ -126,7 +126,7 @@ constexpr ResultType arithmeticMean(Args&&... args) noexcept
 }
 
 template <typename ResultType, typename... Args>
-constexpr ResultType geometricMean(Args&&... args) noexcept
+[[nodiscard]] constexpr ResultType geometricMean(Args&&... args) noexcept
 {
 	ResultType acc = ResultType(1);
 	size_t n = 0;
@@ -139,10 +139,13 @@ constexpr ResultType geometricMean(Args&&... args) noexcept
 	return (ResultType)pow(acc, 1.0 / n);
 }
 
-template <typename ResultType, typename... Args>
-constexpr ResultType geometricMean(Args&&... args) noexcept
+[[nodiscard]] constexpr size_t pow2(size_t power) noexcept
 {
+	size_t result = 2;
+	for (size_t i = 1; i < power; ++i)
+		result *= 2;
 
+	return result;
 }
 
 }

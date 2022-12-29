@@ -28,6 +28,7 @@ HEADERS += \
 	utility/extra_type_traits.hpp \
 	utility/memory_cast.hpp \
 	utility/named_type_wrapper.hpp \
+	utility/odd_sized_integer.hpp \
 	utility/on_scope_exit.hpp \
 	utility/callback_caller.hpp \
 	utility/macro_utils.h \
