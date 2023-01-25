@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 #if !defined __GNUC__ || __GNUC__ >= 12
@@ -47,4 +48,10 @@ template <class CharT, class CharTraits, class Alloc, typename T, std::enable_if
 GCC_CONSTEXPR_WORKAROUND std::basic_string<CharT, CharTraits, Alloc> operator+(std::basic_string<CharT, CharTraits, Alloc> str, const T value)
 {
 	return str << value;
+}
+
+template<class CharT, class CharTraits, class Alloc>
+GCC_CONSTEXPR_WORKAROUND std::basic_string<CharT, CharTraits, Alloc>& operator<<(std::basic_string<CharT, CharTraits, Alloc>& str, std::string_view sv)
+{
+	return str += sv;
 }
