@@ -148,4 +148,8 @@ template <typename ResultType, typename... Args>
 	return result;
 }
 
+[[nodiscard]] inline constexpr uint64_t reduce(uint32_t value, uint32_t range) noexcept {
+	return ((uint64_t)value * (uint64_t)range) >> 32;
+}
+
 }
