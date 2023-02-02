@@ -15,3 +15,9 @@ struct type_printer {
 		FAIL_COMPILATION;
 	}
 };
+
+template <class... Ts>
+struct overload final : Ts...
+{
+	using Ts::operator()...;
+};
