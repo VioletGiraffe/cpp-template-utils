@@ -1,5 +1,4 @@
 #pragma once
-#include "template_magic.hpp"
 
 #include <type_traits>
 #include <utility>
@@ -46,7 +45,7 @@ constexpr void constexpr_for_fold([[maybe_unused]] Functor&& f) noexcept
 {
 	if constexpr (First < Last)
 	{
-		static_assert(std::is_same_v<void, decltype(f. template operator() < First > ())>, "This implementation does not take return value into account!");
+		static_assert(std::is_same_v<void, decltype(f. template operator()<First>())>, "This implementation does not take return value into account!");
 		detail::constexpr_for_fold_impl<First>(std::forward<Functor>(f), std::make_index_sequence<Last - First>{});
 	}
 }

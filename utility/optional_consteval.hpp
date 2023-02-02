@@ -1,7 +1,7 @@
 #pragma once
 
-// std::optional has very limited constexpr support C++20 and earlier standards.
-// This is a consteval class that implements std::optional interface.
+// std::optional has very limited constexpr support in C++20 and earlier standards.
+// This is a consteval class that implements std::optional interface for use in compile-time calculations.
 
 template <typename T>
 class optional_consteval {

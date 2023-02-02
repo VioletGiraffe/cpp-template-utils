@@ -3,7 +3,7 @@
 #include "utility/odd_sized_integer.hpp"
 #include "math/math.hpp"
 
-TEST_CASE("Construction from and conversion to regular integer")
+TEST_CASE("Construction from and conversion to regular integer", "[odd_sized_integer]")
 {
 	static constexpr size_t N = 3;
 
@@ -20,7 +20,7 @@ TEST_CASE("Construction from and conversion to regular integer")
 	}
 }
 
-TEST_CASE("Copy construction")
+TEST_CASE("Copy construction", "[odd_sized_integer]")
 {
 	odd_sized_integer<5> oi {5};
 	const auto oi2 = oi;
@@ -29,7 +29,7 @@ TEST_CASE("Copy construction")
 	REQUIRE(oi2 == 5);
 }
 
-TEST_CASE("Move construction")
+TEST_CASE("Move construction", "[odd_sized_integer]")
 {
 	odd_sized_integer<5> oi {5};
 	const auto oi2 = std::move(oi);
@@ -37,7 +37,7 @@ TEST_CASE("Move construction")
 	REQUIRE(oi2 == 5);
 }
 
-TEST_CASE("Assignemnt and move assignment")
+TEST_CASE("Assignemnt and move assignment", "[odd_sized_integer]")
 {
 	odd_sized_integer<5> oi {5};
 
@@ -53,7 +53,7 @@ TEST_CASE("Assignemnt and move assignment")
 	CHECK(oi == 500'000);
 }
 
-TEST_CASE("comparison operators")
+TEST_CASE("comparison operators", "[odd_sized_integer]")
 {
 	odd_sized_integer<7> o1 {7};
 	odd_sized_integer<7> o2 {7'000'000'000ULL};
@@ -90,7 +90,7 @@ TEST_CASE("comparison operators")
 	CHECK(!(o2 != o3.toUi64()));
 }
 
-TEST_CASE("Arithmetics")
+TEST_CASE("Arithmetics", "[odd_sized_integer]")
 {
 	odd_sized_integer<7> oi {7};
 	CHECK(oi + 10 == 17);

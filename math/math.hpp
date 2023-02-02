@@ -115,11 +115,10 @@ template <typename ResultType, typename... Args>
 constexpr ResultType arithmeticMean(Args&&... args) noexcept
 {
 	ResultType acc = ResultType(0);
-	size_t n = 0;
+	constexpr size_t n = sizeof...(Args);
 
 	pack::for_value([&](auto&& value) {
 		acc += value;
-		++n;
 	}, std::forward<Args>(args)...);
 
 	return acc / n;

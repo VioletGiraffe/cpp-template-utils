@@ -1,6 +1,7 @@
 #include "3rdparty/catch2/catch.hpp"
-#include "utility/constexpr_algorithms.hpp"
 #include "tuple/tuple_helpers.hpp"
+#include "utility/constexpr_algorithms.hpp"
+#include "utility/template_magic.hpp"
 
 #include <array>
 #include <numeric>
