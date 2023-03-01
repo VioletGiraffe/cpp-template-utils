@@ -1,5 +1,7 @@
 #pragma once
 
+#define UNUSED_VARIABLE(x) (void)(x)
+
 #if defined _MSC_VER
 
 #define COMPILER_PRAGMA(text) __pragma(text)
@@ -47,14 +49,48 @@
 
 #define DISABLE_COMPILER_WARNINGS COMPILER_PRAGMA(warning(push, 0)) // Set /W0
 
-#elif defined __clang__ || defined __GNUC__ || defined __GNUG__
+#elif defined __clang__
 
-#define DISABLE_COMPILER_WARNINGS \
+	#define DISABLE_COMPILER_WARNINGS \
 	STORE_COMPILER_WARNINGS \
 	DISABLE_SPECIFIC_COMPILER_WARNING("-Wall") \
-	DISABLE_SPECIFIC_COMPILER_WARNING("-Wunknown-pragmas")
+	DISABLE_SPECIFIC_COMPILER_WARNING("-Wunknown-pragmas") \
+	DISABLE_SPECIFIC_COMPILER_WARNING("-Wcomma") \
+	DISABLE_SPECIFIC_COMPILER_WARNING("-Wshorten-64-to-32") \
+	DISABLE_SPECIFIC_COMPILER_WARNING("-Wconversion") \
+	DISABLE_SPECIFIC_COMPILER_WARNING("-Wdeprecated-enum-enum-conversion") \
+	DISABLE_SPECIFIC_COMPILER_WARNING("-Wsign-promo") \
+	DISABLE_SPECIFIC_COMPILER_WARNING("-Wcast-qual") \
+	DISABLE_SPECIFIC_COMPILER_WARNING("-Wunused-const-variable") \
+	DISABLE_SPECIFIC_COMPILER_WARNING("-Wimplicit-fallthrough") \
+	DISABLE_SPECIFIC_COMPILER_WARNING("-Wconditional-uninitialized")
 
+#elif defined __GNUC__ || defined __GNUG__
 
+	#ifdef __cplusplus
+
+	#define DISABLE_COMPILER_WARNINGS \
+		STORE_COMPILER_WARNINGS \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wall") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wunknown-pragmas") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wunused-parameter") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wsign-promo") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wconversion") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wdeprecated-enum-enum-conversion") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wcast-qual") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wunused-const-variable") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wimplicit-fallthrough") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wclass-memaccess")
+
+	#else // C only
+	#define DISABLE_COMPILER_WARNINGS \
+		STORE_COMPILER_WARNINGS \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wall") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wunused-parameter") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wimplicit-fallthrough") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wconversion") \
+		DISABLE_SPECIFIC_COMPILER_WARNING("-Wunknown-pragmas")
+	#endif
 #else
 
 #pragma message ("Unknown compiler")
