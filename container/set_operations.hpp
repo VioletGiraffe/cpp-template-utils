@@ -58,6 +58,13 @@ enum class ItemOrder {
 	KeepFirstOccurrence
 };
 
+namespace detail {
+	template<typename T>
+	concept HasReserve = requires(T t) {
+		{ t.reserve() } -> std::same_as<void>;
+	};
+}
+
 template <ItemOrder order = ItemOrder::DontPreserveOrder, class ContainerType>
 [[nodiscard]] ContainerType uniqueElements(const ContainerType& c)
 {
@@ -107,7 +114,9 @@ template <ItemOrder order = ItemOrder::DontPreserveOrder, class ContainerType>
 			uniqueIterators.emplace_back(itemRef.it);
 
 		std::sort(uniqueIterators.begin(), uniqueIterators.end(), [](const ConstIterator& l, const ConstIterator& r){return l < r;});
-		result.reserve(uniqueIterators.size());
+		if constexpr (detail::HasReserve<ContainerType>)
+			result.reserve(uniqueIterators.size());
+
 		for (const auto it: uniqueIterators)
 			result.insert(result.end(), *it);
 	}
