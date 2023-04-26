@@ -12,6 +12,8 @@ public:
 		_valid{true}
 	{}
 
+	consteval optional_consteval(const optional_consteval&) noexcept = default;
+
 	consteval optional_consteval& operator=(const optional_consteval& other) noexcept = default;
 	consteval optional_consteval& operator=(const T& value) noexcept
 	{
