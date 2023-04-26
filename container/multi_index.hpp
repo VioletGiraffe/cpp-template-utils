@@ -66,7 +66,7 @@ public:
 		return result;
 	}
 
-	auto findPrimary(const PrimaryKeyType& key) const noexcept {
+	[[nodiscard]] auto findPrimary(const PrimaryKeyType& key) const noexcept {
 		return _primarySet.find(key);
 	}
 
@@ -122,11 +122,11 @@ public:
 		return 1;
 	}
 
-	size_t size() const noexcept {
+	[[nodiscard]] size_t size() const noexcept {
 		return _primarySet.size();
 	}
 
-	bool empty() const noexcept {
+	[[nodiscard]] bool empty() const noexcept {
 		return _primarySet.empty();
 	}
 
@@ -135,15 +135,15 @@ public:
 		_primarySet.clear();
 	}
 
-	auto begin() const {
+	[[nodiscard]] auto begin() const {
 		return _primarySet.begin();
 	}
 
-	auto end() const {
+	[[nodiscard]] auto end() const {
 		return _primarySet.end();
 	}
 
-	bool debugCheckSecondaryIndex() const noexcept {
+	[[nodiscard]] bool debugCheckSecondaryIndex() const noexcept {
 		if (_secondaryIndex.size() != _primarySet.size())
 			return false;
 

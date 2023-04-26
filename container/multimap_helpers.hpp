@@ -15,6 +15,8 @@ struct multimap_value_iterator {
 		: _iterator{iterator}
 	{}
 
+	constexpr ~multimap_value_iterator() noexcept = default;
+
 	constexpr multimap_value_iterator() noexcept = default;
 	constexpr multimap_value_iterator(const multimap_value_iterator&) noexcept = default;
 	constexpr multimap_value_iterator(multimap_value_iterator&&) noexcept = default;

@@ -15,14 +15,14 @@ CONFIG += strict_c++ c++2a
 
 
 HEADERS += \
-	compiler/compiler_warnings_control.h \
-	$$files(compiler/*.hpp, false) \
+	$$files(compiler/*.h*, false) \
 	$$files(container/*.hpp, false) \
 	$$files(hash/*.hpp, false) \
-	math/math.hpp \
-	parameter_pack/parameter_pack_helpers.hpp \
-	random/randomnumbergenerator.h \
-	regex/regex_helpers.hpp \
-	string/string_helpers.hpp \
-	tuple/tuple_helpers.hpp \
-	$$files(utility/*.hpp, false)
+	$$files(lang/*.hpp, false) \
+	$$files(math/*.hpp, false) \
+	$$files(parameter_pack/*.hpp, false) \
+	$$files(random/*.hpp, false) \
+	$$files(regex/*.hpp, false) \
+	$$files(string/*.hpp, false) \
+	$$files(tuple/*.hpp, false) \
+	$$files(utility/*.h*, false)

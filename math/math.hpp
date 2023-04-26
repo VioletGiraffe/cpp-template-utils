@@ -135,7 +135,7 @@ template <typename ResultType, typename... Args>
 		++n;
 	}, std::forward<Args>(args)...);
 
-	return (ResultType)pow(acc, 1.0 / n);
+	return (ResultType)pow(acc, 1.0 / (double)n);
 }
 
 [[nodiscard]] constexpr size_t pow2(size_t power) noexcept

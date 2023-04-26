@@ -19,9 +19,8 @@ inline uint64_t _wheatr16(const uint8_t *p){ uint16_t v; memcpy(&v, p, 2); retur
 inline uint64_t _wheatr32(const uint8_t *p){ uint32_t v; memcpy(&v, p, 4); return v; }
 
 inline uint64_t wheathash(const void* key, uint64_t len, uint64_t seed){
-	const uint8_t *p = (const uint8_t*)key;
-	uint64_t i;
-	for (i = 0; i + 16 <= len; i += 16, p += 16) {
+	const uint8_t *p = reinterpret_cast<const uint8_t*>(key);
+	for (uint64_t i = 0; i + 16 <= len; i += 16, p += 16) {
 		seed = _wheatmum(
 			_wheatmum(_wheatr32(p) ^ _wheatp1, _wheatr32(p + 4) ^ _wheatp2) + seed,
 			_wheatmum(_wheatr32(p + 8) ^ _wheatp3, _wheatr32(p + 12) ^ _wheatp4)

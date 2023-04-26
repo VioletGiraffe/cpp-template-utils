@@ -5,8 +5,8 @@
 template<typename Container>
 struct const_forward_iterator_wrapper
 {
-	const_forward_iterator_wrapper() {}
-	const_forward_iterator_wrapper(const Container& container, const typename Container::const_iterator& iterator): _iterator(iterator), _container(&container) {}
+	constexpr const_forward_iterator_wrapper() noexcept = default;
+	constexpr const_forward_iterator_wrapper(const Container& container, const typename Container::const_iterator& iterator): _iterator(iterator), _container(&container) {}
 
 	const_forward_iterator_wrapper& operator=(const typename Container::const_iterator it)
 	{
@@ -35,35 +35,35 @@ struct const_forward_iterator_wrapper
 		return &(*_iterator);
 	}
 
-	bool endReached() const
+	[[nodiscard]] bool endReached() const
 	{
 		assert(valid());
 		return _iterator >= _container->cend();
 	}
 
-	bool valid() const
+	[[nodiscard]] bool valid() const
 	{
 		return _container != nullptr;
 	}
 
-	bool operator==(const typename Container::const_iterator other) const
+	[[nodiscard]] bool operator==(const typename Container::const_iterator other) const
 	{
 		assert(valid());
 		return _iterator == other;
 	}
 
-	bool operator==(const const_forward_iterator_wrapper other) const
+	[[nodiscard]] bool operator==(const const_forward_iterator_wrapper other) const
 	{
 		assert(valid() && _container == other._container);
 		return _iterator == other._iterator;
 	}
 
-	bool operator!=(const typename Container::const_iterator other) const
+	[[nodiscard]] bool operator!=(const typename Container::const_iterator other) const
 	{
 		return !(*this == other);
 	}
 
-	bool operator!=(const const_forward_iterator_wrapper other) const
+	[[nodiscard]] bool operator!=(const const_forward_iterator_wrapper other) const
 	{
 		return !(*this == other);
 	}
@@ -75,7 +75,7 @@ struct const_forward_iterator_wrapper
 namespace forward_iterator_wrapper {
 
 	template<typename Container>
-	const_forward_iterator_wrapper<Container> cbegin(const Container& c)
+	[[nodiscard]] const_forward_iterator_wrapper<Container> cbegin(const Container& c)
 	{
 		const_forward_iterator_wrapper<Container> it;
 		it._container = &c;
@@ -84,7 +84,7 @@ namespace forward_iterator_wrapper {
 	}
 
 	template<typename Container>
-	const_forward_iterator_wrapper<Container> cend(const Container& c)
+	[[nodiscard]] const_forward_iterator_wrapper<Container> cend(const Container& c)
 	{
 		const_forward_iterator_wrapper<Container> it;
 		it._container = &c;
