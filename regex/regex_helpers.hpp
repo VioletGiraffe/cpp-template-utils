@@ -54,4 +54,4 @@ namespace regex_helpers {
 			+ replaceWith
 			+ str.substr(posN + matchLengthN, pos0 + matchLength0 - posN - matchLengthN);
 	}
-}
+} // namespace regex_helpers

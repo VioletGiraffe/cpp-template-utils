@@ -34,7 +34,7 @@ namespace pack {
 			static_assert (index.has_value(), "Type not found in pack");
 			return *index;
 		}
-	}
+	} // namespace detail
 
 	template <typename T, typename... Args>
 	constexpr size_t index_for_type_v = detail::index_for_type_strict<T, Args...>();
@@ -78,7 +78,7 @@ namespace pack {
 			f. template operator()<type_by_index<i, Args...>>();
 		});
 	}
-}
+} // namespace pack
 
 template <typename... Pack>
 struct type_pack

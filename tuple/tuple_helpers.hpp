@@ -26,7 +26,7 @@ namespace tuple {
 		{
 			return std::array<void (*)(const Tuple &, F), sizeof...(I)>{invoke<const Tuple, F, I>...};
 		}
-	}
+	} // namespace detail
 
 	template <class Tuple>
 	inline constexpr size_t tuple_size_v_omnivorous = std::tuple_size_v<std::remove_reference_t<Tuple>>;
@@ -48,4 +48,4 @@ namespace tuple {
 			func(std::get<I>(std::forward<Tuple>(tuple)));
 		});
 	}
-}
+} // namespace tuple

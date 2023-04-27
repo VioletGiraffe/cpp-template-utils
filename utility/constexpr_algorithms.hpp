@@ -21,10 +21,10 @@ namespace detail {
 				consteval_for_T<T, First + 1, Last>(f);
 			}
 
-			
+
 		}
 	}
-}
+} // namespace detail
 
 template <size_t First, size_t Last, typename Functor>
 consteval void consteval_for(Functor f) noexcept
@@ -38,7 +38,7 @@ namespace detail {
 	{
 		(std::forward<Functor>(f).template operator()<First + Indices>(), ...);
 	}
-}
+} // namespace detail
 
 template <size_t First, size_t Last, typename Functor>
 constexpr void constexpr_for_fold([[maybe_unused]] Functor&& f) noexcept

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "std_container_helpers.hpp"
-#include "../utility/extra_type_traits.hpp"
 
 #include <algorithm>
 #include <iterator>
@@ -63,7 +62,7 @@ namespace detail {
 	concept HasReserve = requires(T t) {
 		{ t.reserve() } -> std::same_as<void>;
 	};
-}
+} // namespace detail
 
 template <ItemOrder order = ItemOrder::DontPreserveOrder, class ContainerType>
 [[nodiscard]] ContainerType uniqueElements(const ContainerType& c)
@@ -197,4 +196,4 @@ template <template<typename...> class C1, template<typename...> class C2, typena
 	return std::equal(cbegin_to_end(c1), cbegin_to_end(c2), eqComp);
 }
 
-} // namespace
+} // namespace SetOperations

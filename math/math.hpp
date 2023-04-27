@@ -151,4 +151,4 @@ template <typename ResultType, typename... Args>
 	return ((uint64_t)value * (uint64_t)range) >> 32;
 }
 
-}
+} // namespace Math

@@ -91,5 +91,5 @@ namespace forward_iterator_wrapper {
 		it._iterator = c.cend();
 		return it;
 	}
-}
+} // namespace forward_iterator_wrapper
 
