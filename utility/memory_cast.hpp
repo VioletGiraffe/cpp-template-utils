@@ -2,7 +2,7 @@
 
 #include "../utility/extra_type_traits.hpp"
 
-#include <memory>
+#include <memory> // std::addressof
 #include <string.h>
 #include <utility>
 
@@ -22,4 +22,10 @@ constexpr TargetType memory_cast(SourceType source, TargetType_Constructor_Argum
 	}
 
 	return value;
+}
+
+template <typename T>
+inline void zero_object(T& object) noexcept
+{
+	::memset(std::addressof(object), 0, sizeof(object));
 }
