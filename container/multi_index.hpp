@@ -113,9 +113,7 @@ public:
 	size_t erase(const T& item) noexcept
 	{
 		const auto it = _primarySet.find(item);
-		if (it == _primarySet.end())
-			return 0;
-		else if (!(*it == item))
+		if (it == _primarySet.end() || !(*it == item))
 			return 0;
 
 		erase(it);
