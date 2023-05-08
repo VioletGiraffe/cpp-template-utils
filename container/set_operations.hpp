@@ -116,7 +116,7 @@ template <ItemOrder order = ItemOrder::DontPreserveOrder, class ContainerType>
 		if constexpr (detail::HasReserve<ContainerType>)
 			result.reserve(uniqueIterators.size());
 
-		for (const auto it: uniqueIterators)
+		for (const auto& it: uniqueIterators)
 			result.insert(result.end(), *it);
 	}
 
