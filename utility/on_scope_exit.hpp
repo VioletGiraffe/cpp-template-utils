@@ -27,4 +27,4 @@ private:
 
 } // namespace detail
 
-#define EXEC_ON_SCOPE_EXIT detail::OnScopeExitExecutor CONCAT_EXPANDED_ARGUMENTS_2(onScopeExit_, __LINE__)
+#define EXEC_ON_SCOPE_EXIT ::detail::OnScopeExitExecutor CONCAT_EXPANDED_ARGUMENTS_2(onScopeExit_, __LINE__)
