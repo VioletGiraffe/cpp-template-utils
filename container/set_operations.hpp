@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <iterator>
-#include <map>
 #include <numeric>
 #include <set>
 #include <type_traits>
@@ -127,12 +126,6 @@ template <typename ItemType>
 [[nodiscard]] const std::set<ItemType>& uniqueElements(const std::set<ItemType>& set)
 {
 	return set;
-}
-
-template <typename KeyType, typename ValueType>
-[[nodiscard]] const std::map<KeyType, ValueType>& uniqueElements(const std::map<KeyType, ValueType>& map)
-{
-	return map;
 }
 
 template <template<typename...> class OutputContainerType, class ContainerType1, class ContainerType2, typename ComparatorType = std::less<>>
