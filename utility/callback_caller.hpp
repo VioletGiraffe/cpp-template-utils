@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../container/algorithms.hpp"
-
 #include <algorithm>
 #include <assert.h>
 #include <vector>
@@ -17,7 +15,7 @@ public:
 
 	void removeSubscriber(Interface* instance)
 	{
-		ContainerAlgorithms::erase_all_occurrences(_subscribers, instance);
+		std::erase(_subscribers, instance);
 	}
 
 	template <typename MethodPointer, typename ...Args>
