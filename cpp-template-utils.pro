@@ -10,10 +10,6 @@ CONFIG -= flat
 
 CONFIG += strict_c++ c++2a
 
-*g++*:QMAKE_CXXFLAGS += -fconcepts -std=c++2a
-*msvc*:QMAKE_CXXFLAGS += /Zc:char8_t /JMC
-
-
 HEADERS += \
 	$$files(compiler/*.h*, false) \
 	$$files(container/*.hpp, false) \
