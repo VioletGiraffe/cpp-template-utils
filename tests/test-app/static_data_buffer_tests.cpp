@@ -32,7 +32,7 @@ TEST_CASE("data_buffer", "[data_buffer]") {
 
 		REQUIRE(eq);
 
-		buf.seek(buf.size());
+		CHECK(buf.seek(buf.size()));
 		CHECK(buf.size() == 100);
 		CHECK(buf.pos() == 100);
 
@@ -41,7 +41,7 @@ TEST_CASE("data_buffer", "[data_buffer]") {
 		CHECK(buf.size() == 110);
 		CHECK(buf.pos() == 110);
 
-		buf.seek(100);
+		CHECK(buf.seek(100));
 		CHECK(buf.size() == 110);
 		CHECK(buf.pos() == 100);
 
