@@ -27,7 +27,7 @@ struct TrackingAllocator {
 		return TrackingAllocator{};
 	}
 
-	constexpr bool operator=(const TrackingAllocator&) const noexcept
+	constexpr bool operator==(const TrackingAllocator&) const noexcept
 	{
 		return true;
 	}

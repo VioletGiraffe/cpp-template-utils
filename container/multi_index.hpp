@@ -45,7 +45,7 @@ private:
 
 public:
 	using iterator = typename decltype(_primarySet)::iterator;
-	using const_iterator = typename decltype(_primarySet)::iterator;
+	using const_iterator = typename decltype(_primarySet)::const_iterator;
 
 	using secondary_key_iterator = multimap_value_iterator<typename decltype(_secondaryIndex)::const_iterator>;
 

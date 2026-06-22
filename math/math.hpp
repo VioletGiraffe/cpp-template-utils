@@ -90,7 +90,7 @@ typename std::enable_if<std::is_floating_point<T>::value, T>::type abs(T value) 
 template<typename T>
 constexpr T clamp(T lowerBoundary, T value, T upperBoundary) noexcept
 {
-	return value > upperBoundary ? value : (value < lowerBoundary ? lowerBoundary : value);
+	return value < lowerBoundary ? lowerBoundary : (value > upperBoundary ? upperBoundary : value);
 }
 
 template <typename T>

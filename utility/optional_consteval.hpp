@@ -27,7 +27,7 @@ public:
 	[[nodiscard]] consteval bool operator==(const optional_consteval& other) const noexcept
 	{
 		// Empty optionals should be equal (even of different but compatible template types, but we don't need to handle that).
-		if (!_valid != other._valid)
+		if (_valid != other._valid)
 			return false;
 		else if (!_valid)
 			return true;
