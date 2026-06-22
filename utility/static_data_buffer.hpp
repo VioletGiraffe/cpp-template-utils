@@ -58,9 +58,13 @@ public:
 		return _pos;
 	}
 
-	constexpr void seek(const size_t pos) & noexcept
+	[[nodiscard]] constexpr bool seek(const size_t pos) & noexcept
 	{
+		if (pos > MaxSize) [[unlikely]]
+			return false;
+
 		_pos = pos;
+		return true;
 	}
 
 	[[nodiscard]] constexpr const value_type* data() const & noexcept
