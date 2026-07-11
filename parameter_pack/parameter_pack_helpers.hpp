@@ -15,7 +15,10 @@ namespace pack {
 	[[nodiscard]] consteval optional_consteval<size_t> index_for_type() noexcept
 	{
 		optional_consteval<size_t> index;
-		consteval_for<0, sizeof...(Args)>([&index]<size_t I>() consteval {
+		// The explicit -> void keeps consteval_for's return-type probe (decltype on the body) from
+		// instantiating this body during deduction, dodging an Apple Clang bug that rejects the consteval
+		// calls on captured 'index' as non-constant. Not needed by GCC/MSVC; the real invocation is fine everywhere.
+		consteval_for<0, sizeof...(Args)>([&index]<size_t I>() consteval -> void {
 			if (!index) // The index of the first occurrence is stored
 			{
 				if constexpr (std::is_same_v<T, type_by_index<I, Args... >>)
