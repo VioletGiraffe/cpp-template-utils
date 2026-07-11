@@ -210,7 +210,7 @@ TEST_CASE("consteval_for - compile-time operation", "[constexpr-algos]")
 
 TEST_CASE("consteval_for -> bool - early exit at runtime", "[constexpr-algos]")
 {
-	consteval_for<5, 200>([]<auto index>() -> bool {
+	consteval_for<5, 200>([]<auto index>() consteval -> bool {
 		static_assert(std::is_same_v<decltype(index), size_t>);
 		static_assert (index >= 5 && index <= 7);
 

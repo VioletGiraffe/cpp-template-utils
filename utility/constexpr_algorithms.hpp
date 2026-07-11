@@ -12,10 +12,7 @@ namespace detail {
 		{
 			if constexpr (std::is_same_v<bool, decltype(f.template operator()<First>())>)
 			{
-				// 'f' is a function parameter, not a constant expression: calling it here is non-portable (Apple
-				// Clang rejects f.operator()<First>() in this constexpr context). A captureless closure is
-				// default-constructible in C++20, so a fresh value-initialized one gives a genuine constant.
-				constexpr bool proceed = decltype(f){}.template operator()<First>();
+				constexpr bool proceed = f.template operator()<First>();
 				if constexpr (proceed)
 					consteval_for_T<T, First + 1, Last>(f);
 			}
