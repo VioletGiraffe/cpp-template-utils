@@ -12,8 +12,7 @@ namespace detail {
 		{
 			if constexpr (std::is_same_v<bool, decltype(f.template operator()<First>())>)
 			{
-				constexpr bool proceed = f.template operator()<First>();
-				if constexpr (proceed)
+				if constexpr (f.template operator()<First>() == true)
 					consteval_for_T<T, First + 1, Last>(f);
 			}
 			else
