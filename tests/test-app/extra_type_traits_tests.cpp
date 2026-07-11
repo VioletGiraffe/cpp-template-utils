@@ -28,7 +28,9 @@ TEST_CASE("is_equal_comparable", "[extra_type_traits]") {
 	static_assert (is_equal_comparable_v<comparable, comparable>);
 	static_assert (!is_equal_comparable_v<non_comparable, non_comparable>);
 	static_assert (is_equal_comparable_v<comparable, int>);
-#if __cplusplus > 201703L && (!defined __GNUC__ || __GNUC__ >= 10)
+// C++20 rewritten candidates make 'int == comparable' valid via comparable::operator==(int). Clang defines
+// __GNUC__ as 4 yet supports this, so gate it in explicitly, alongside GCC>=10 and MSVC (which defines neither).
+#if __cplusplus > 201703L && (defined __clang__ || !defined __GNUC__ || __GNUC__ >= 10)
 	static_assert (is_equal_comparable_v<int, comparable>);
 #else
 	static_assert (!is_equal_comparable_v<int, comparable>);
