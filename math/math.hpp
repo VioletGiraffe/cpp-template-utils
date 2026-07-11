@@ -8,6 +8,10 @@
 #include <stdint.h>
 #include <math.h>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 namespace Math {
 
 template <typename T>
@@ -147,8 +151,41 @@ template <typename ResultType, typename... Args>
 	return result;
 }
 
-[[nodiscard]] inline constexpr uint64_t reduce(uint32_t value, uint32_t range) noexcept {
+[[nodiscard]] inline constexpr uint64_t reduce(uint32_t value, uint32_t range) noexcept
+{
 	return ((uint64_t)value * (uint64_t)range) >> 32;
 }
+
+inline uint32_t fastmod_u32(uint32_t a, uint64_t M, uint32_t d) noexcept
+{
+	const uint64_t lowbits = M * a;
+#if defined(__SIZEOF_INT128__)          // GCC / Clang
+	return (uint32_t)(((__uint128_t)lowbits * d) >> 64);
+#elif defined(_MSC_VER) && (defined(_M_X64) || defined(_M_ARM64))
+	return (uint32_t)__umulh(lowbits, d);
+#else                                   // portable: 32-bit targets
+	const uint64_t lo = (lowbits & 0xFFFFFFFFull) * d;
+	const uint64_t hi = (lowbits >> 32) * d;
+	return (uint32_t)((hi + (lo >> 32)) >> 32);
+#endif
+}
+
+inline constexpr uint64_t computeM_u32(uint32_t d) noexcept {
+	return UINT64_C(0xFFFFFFFFFFFFFFFF) / d + 1;
+}
+
+class FastMod32
+{
+	const uint64_t M;
+	const uint32_t d;
+public:
+	inline constexpr FastMod32(uint32_t divisor) noexcept
+		: M(computeM_u32(divisor)), d(divisor)
+	{}
+	inline uint32_t mod(uint32_t a) const noexcept
+	{
+		return fastmod_u32(a, M, d);
+	}
+};
 
 } // namespace Math

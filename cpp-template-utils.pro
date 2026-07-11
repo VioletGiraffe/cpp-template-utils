@@ -21,4 +21,5 @@ HEADERS += \
 	$$files(regex/*.hpp, false) \
 	$$files(string/*.hpp, false) \
 	$$files(tuple/*.hpp, false) \
-	$$files(utility/*.h*, false)
+	$$files(utility/*.h*, false) \
+	hash/mixers.h
