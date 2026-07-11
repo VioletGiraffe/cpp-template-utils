@@ -22,4 +22,5 @@ HEADERS += \
 	$$files(string/*.hpp, false) \
 	$$files(tuple/*.hpp, false) \
 	$$files(utility/*.h*, false) \
-	hash/mixers.h
+	hash/mixers.h \
+	utility/aligned_wrapper.hpp
