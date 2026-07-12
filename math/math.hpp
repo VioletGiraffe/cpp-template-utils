@@ -156,6 +156,8 @@ template <typename ResultType, typename... Args>
 	return ((uint64_t)value * (uint64_t)range) >> 32;
 }
 
+namespace detail {
+
 inline uint32_t fastmod_u32(uint32_t a, uint64_t M, uint32_t d) noexcept
 {
 	const uint64_t lowbits = M * a;
@@ -173,19 +175,22 @@ inline uint32_t fastmod_u32(uint32_t a, uint64_t M, uint32_t d) noexcept
 inline constexpr uint64_t computeM_u32(uint32_t d) noexcept {
 	return UINT64_C(0xFFFFFFFFFFFFFFFF) / d + 1;
 }
+} // namespace detail
 
-class FastMod32
+struct FastMod32
 {
+	inline constexpr FastMod32(uint32_t divisor) noexcept
+		: M(detail::computeM_u32(divisor)), d(divisor)
+	{}
+
+	[[nodiscard]] inline uint32_t mod(uint32_t a) const noexcept
+	{
+		return detail::fastmod_u32(a, M, d);
+	}
+
+private:
 	const uint64_t M;
 	const uint32_t d;
-public:
-	inline constexpr FastMod32(uint32_t divisor) noexcept
-		: M(computeM_u32(divisor)), d(divisor)
-	{}
-	inline uint32_t mod(uint32_t a) const noexcept
-	{
-		return fastmod_u32(a, M, d);
-	}
 };
 
 } // namespace Math
