@@ -20,5 +20,5 @@ private:
 	T _value{}; // default initialization for class types; zero initialization for primitive type: 'false' for bool, '0' for int etc.
 };
 
-#define UniqueNamedBoolType NamedType<bool, __LINE__ + murmur3_32_consteval(__FILE__)>
-#define UniqueNamedType(T) NamedType<T, __LINE__ + murmur3_32_consteval(__FILE__)>
+#define UniqueNamedBoolType NamedType<bool, __LINE__>
+#define UniqueNamedType(T) NamedType<T, __LINE__>
