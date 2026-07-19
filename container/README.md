@@ -6,6 +6,19 @@ Defines two functions in `ContainerAlgorithms` namespace that are constructed up
 * `void erase_all_occurrences(ContainerType& container, const ArgumentType& item)` deletes every occurrence of the `item` in `container` using the remove-erase idiom.
 * `void void erase_if(ContainerType& container, std::function<bool(const ItemType&)>` deletes every occurrence of the `item` in `container` using the remove-erase idiom.
 
+### flat_map.hpp
+
+Defines `flat_map` and `flat_set`, sorted associative containers backed by vectors. `flat_map` keeps keys and mapped
+values in separate vectors and exposes pair-like proxy iterators with `first`/`second` and `key()`/`value()` access.
+Both containers support ordinary insertion, merging from a sorted range, and batched unsorted appends followed
+by tail sorting and merging. Existing entries and the first newly inserted entry win duplicate keys. Key equality uses
+`operator==` when the compared types provide it, otherwise comparator equivalence; equal keys must also be equivalent
+under the comparator. Batch entries are added with `append_unsorted()`; ordered operations and iteration must not be
+used between `begin_batch()` and `end_batch()`.
+Map dereference returns its proxy by value, so `auto entry` and `const auto& entry` work in range loops but `auto& entry`
+does not. Read-only standard algorithms and construction of ordinary pair containers are supported; algorithms that
+reorder entries are intentionally ill-formed because keys are immutable.
+
 ### iterator_helpers.hpp
 
 Defines two classes `const_forward_iterator_wrapper` and `forward_iterator_wrapper` that encapsulate an std (or std-compatible) iterator together with a reference to the container this iterator points to. This allows using these iterators as any other normal iterator while also being able to get the parent container from them.
