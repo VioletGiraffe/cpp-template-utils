@@ -475,8 +475,8 @@ private:
 			return;
 		if (empty()) {
 			const auto unique_size = deduplicate_sorted(incoming_keys, incoming_values);
-			incoming_keys.resize(unique_size);
-			incoming_values.resize(unique_size);
+			incoming_keys.erase(incoming_keys.begin() + static_cast<difference_type>(unique_size), incoming_keys.end());
+			incoming_values.erase(incoming_values.begin() + static_cast<difference_type>(unique_size), incoming_values.end());
 			_keys = std::move(incoming_keys);
 			_values = std::move(incoming_values);
 			return;
@@ -591,8 +591,8 @@ private:
 		}
 
 		const auto unique_size = deduplicate_sorted(_keys, _values);
-		_keys.resize(unique_size);
-		_values.resize(unique_size);
+		_keys.erase(_keys.begin() + static_cast<difference_type>(unique_size), _keys.end());
+		_values.erase(_values.begin() + static_cast<difference_type>(unique_size), _values.end());
 	}
 
 	std::vector<Key> _keys;
