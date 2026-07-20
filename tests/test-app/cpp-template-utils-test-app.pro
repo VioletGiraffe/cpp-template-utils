@@ -34,6 +34,7 @@ INCLUDEPATH += $${PWD}/../../
 SOURCES += \
 	main.cpp \
 	math_tests.cpp \
+	flat_map_tests.cpp \
 	multiindex_tests.cpp \
 	odd_sized_integer_tests.cpp \
 	static_data_buffer_tests.cpp \
