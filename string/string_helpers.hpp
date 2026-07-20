@@ -4,54 +4,48 @@
 #include <string_view>
 #include <type_traits>
 
-#if !defined __GNUC__ || __GNUC__ >= 12
-#define GCC_CONSTEXPR_WORKAROUND constexpr
-#else
-#define GCC_CONSTEXPR_WORKAROUND
-#endif
-
-[[nodiscard]] inline GCC_CONSTEXPR_WORKAROUND bool operator==(const std::string& str, const char ch) noexcept
+[[nodiscard]] inline bool operator==(const std::string& str, const char ch) noexcept
 {
 	return str.size() == 1 && str[0] == ch;
 }
 
-[[nodiscard]] inline GCC_CONSTEXPR_WORKAROUND bool operator==(const char ch, const std::string& str) noexcept
+[[nodiscard]] inline bool operator==(const char ch, const std::string& str) noexcept
 {
 	return str == ch;
 }
 
 template<class CharT, class CharTraits, class Alloc>
-GCC_CONSTEXPR_WORKAROUND std::basic_string<CharT, CharTraits, Alloc>& operator<<(std::basic_string<CharT, CharTraits, Alloc>& str, const char* s)
+inline std::basic_string<CharT, CharTraits, Alloc>& operator<<(std::basic_string<CharT, CharTraits, Alloc>& str, const char* s)
 {
 	return str += s;
 }
 
 template<class CharT, class CharTraits, class Alloc>
-GCC_CONSTEXPR_WORKAROUND std::basic_string<CharT, CharTraits, Alloc>& operator<<(std::basic_string<CharT, CharTraits, Alloc>& str, const std::basic_string<CharT, CharTraits, Alloc>& s)
+inline std::basic_string<CharT, CharTraits, Alloc>& operator<<(std::basic_string<CharT, CharTraits, Alloc>& str, const std::basic_string<CharT, CharTraits, Alloc>& s)
 {
 	return str += s;
 }
 
 template <class CharT, class CharTraits, class Alloc, typename T, std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>>* = nullptr>
-GCC_CONSTEXPR_WORKAROUND std::basic_string<CharT, CharTraits, Alloc>& operator<<(std::basic_string<CharT, CharTraits, Alloc>& str, const T value)
+std::basic_string<CharT, CharTraits, Alloc>& operator<<(std::basic_string<CharT, CharTraits, Alloc>& str, const T value)
 {
 	return str += std::to_string(value);
 }
 
 template <class CharT, class CharTraits, class Alloc, typename T, std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>>* = nullptr>
-GCC_CONSTEXPR_WORKAROUND std::basic_string<CharT, CharTraits, Alloc>& operator+=(std::basic_string<CharT, CharTraits, Alloc>& str, const T value)
+inline std::basic_string<CharT, CharTraits, Alloc>& operator+=(std::basic_string<CharT, CharTraits, Alloc>& str, const T value)
 {
 	return str << value;
 }
 
 template <class CharT, class CharTraits, class Alloc, typename T, std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>>* = nullptr>
-GCC_CONSTEXPR_WORKAROUND std::basic_string<CharT, CharTraits, Alloc> operator+(std::basic_string<CharT, CharTraits, Alloc> str, const T value)
+inline std::basic_string<CharT, CharTraits, Alloc> operator+(std::basic_string<CharT, CharTraits, Alloc> str, const T value)
 {
 	return str << value;
 }
 
 template<class CharT, class CharTraits, class Alloc>
-GCC_CONSTEXPR_WORKAROUND std::basic_string<CharT, CharTraits, Alloc>& operator<<(std::basic_string<CharT, CharTraits, Alloc>& str, std::string_view sv)
+inline std::basic_string<CharT, CharTraits, Alloc>& operator<<(std::basic_string<CharT, CharTraits, Alloc>& str, std::string_view sv)
 {
 	return str += sv;
 }
