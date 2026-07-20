@@ -21,18 +21,21 @@ namespace FlatContainerInternal {
 	};
 
 	template <typename Left, typename Right, typename Compare>
-	[[nodiscard]] bool keys_equal(const Left& left, const Right& right, const Compare& compare)
+	[[nodiscard]] bool sorted_keys_equal(const Left& left, const Right& right, [[maybe_unused]] const Compare& compare)
 	{
 		if constexpr (EqualityComparable<Left, Right>)
 			return left == right;
 		else
-			return !compare(left, right) && !compare(right, left);
+			return !compare(left, right); // Sortedness already established !(right < left)
 	}
 
 	template <typename Left, typename Right, typename Compare>
-	[[nodiscard]] bool ordering_equivalent(const Left& left, const Right& right, const Compare& compare)
+	[[nodiscard]] bool lower_bound_matches(const Left& stored_key, const Right& query, [[maybe_unused]] const Compare& compare)
 	{
-		return !compare(left, right) && !compare(right, left);
+		if constexpr (EqualityComparable<Left, Right>)
+			return stored_key == query;
+		else
+			return !compare(query, stored_key); // lower_bound already established !(stored_key < query)
 	}
 
 	template <typename Key, typename Mapped, typename MappedReference>
@@ -323,6 +326,8 @@ public:
 		return { position, inserted };
 	}
 
+	iterator erase(iterator position) { return erase(const_iterator(position)); }
+
 	iterator erase(const_iterator position)
 	{
 		assert_not_batching();
@@ -437,25 +442,19 @@ private:
 	template <typename Query>
 	[[nodiscard]] size_type find_index(const Query& key) const
 	{
-		const auto first = lower_bound_index(key);
-		const auto last = upper_bound_index(key);
-		for (auto index = first; index < last; ++index) {
-			if (FlatContainerInternal::keys_equal(_keys[index], key, _compare))
-				return index;
-		}
+		const auto index = lower_bound_index(key);
+		if (index < size() && FlatContainerInternal::lower_bound_matches(_keys[index], key, _compare))
+			return index;
 		return size();
 	}
 
 	template <typename Query>
 	[[nodiscard]] std::pair<size_type, size_type> find_or_insertion_index(const Query& key) const
 	{
-		const auto first = lower_bound_index(key);
-		const auto last = upper_bound_index(key);
-		for (auto index = first; index < last; ++index) {
-			if (FlatContainerInternal::keys_equal(_keys[index], key, _compare))
-				return { index, last };
-		}
-		return { size(), last };
+		const auto index = lower_bound_index(key);
+		if (index < size() && FlatContainerInternal::lower_bound_matches(_keys[index], key, _compare))
+			return { index, index };
+		return { size(), index };
 	}
 
 	void merge_sorted(std::vector<Key>&& incoming_keys, std::vector<Mapped>&& incoming_values)
@@ -469,71 +468,48 @@ private:
 		merged_keys.reserve(size() + incoming_keys.size());
 		merged_values.reserve(size() + incoming_values.size());
 
-		auto append_existing_group = [&](size_type first, size_type last) {
-			for (auto index = first; index < last; ++index) {
-				merged_keys.emplace_back(std::move(_keys[index]));
-				merged_values.emplace_back(std::move(_values[index]));
-			}
+		auto append_existing = [&](size_type index) {
+			merged_keys.emplace_back(std::move(_keys[index]));
+			merged_values.emplace_back(std::move(_values[index]));
 		};
-		auto append_incoming_group = [&](size_type first, size_type last, size_type merged_group_start) {
-			for (auto index = first; index < last; ++index) {
-				const auto duplicate = std::any_of(merged_keys.begin() + static_cast<difference_type>(merged_group_start), merged_keys.end(),
-					[&](const Key& key) { return FlatContainerInternal::keys_equal(key, incoming_keys[index], _compare); });
-				if (!duplicate) {
-					merged_keys.emplace_back(std::move(incoming_keys[index]));
-					merged_values.emplace_back(std::move(incoming_values[index]));
-				}
+		auto append_incoming = [&](size_type index) {
+			if (merged_keys.empty() || !FlatContainerInternal::sorted_keys_equal(merged_keys.back(), incoming_keys[index], _compare)) {
+				merged_keys.emplace_back(std::move(incoming_keys[index]));
+				merged_values.emplace_back(std::move(incoming_values[index]));
 			}
 		};
 
 		auto existing_index = size_type{ 0 };
 		auto incoming_index = size_type{ 0 };
-		while (existing_index < size() || incoming_index < incoming_keys.size()) {
-			if (existing_index == size()) {
-				const auto incoming_group_end = ordering_group_end(incoming_keys, incoming_index);
-				const auto merged_group_start = merged_keys.size();
-				append_incoming_group(incoming_index, incoming_group_end, merged_group_start);
-				incoming_index = incoming_group_end;
-				continue;
-			}
-			if (incoming_index == incoming_keys.size()) {
-				const auto existing_group_end = ordering_group_end(_keys, existing_index);
-				append_existing_group(existing_index, existing_group_end);
-				existing_index = existing_group_end;
-				continue;
-			}
-
-			if (_compare(_keys[existing_index], incoming_keys[incoming_index])) {
-				const auto existing_group_end = ordering_group_end(_keys, existing_index);
-				append_existing_group(existing_index, existing_group_end);
-				existing_index = existing_group_end;
-			} else if (_compare(incoming_keys[incoming_index], _keys[existing_index])) {
-				const auto incoming_group_end = ordering_group_end(incoming_keys, incoming_index);
-				const auto merged_group_start = merged_keys.size();
-				append_incoming_group(incoming_index, incoming_group_end, merged_group_start);
-				incoming_index = incoming_group_end;
+		while (existing_index < size() && incoming_index < incoming_keys.size()) {
+			if constexpr (FlatContainerInternal::EqualityComparable<Key, Key>) {
+				if (_keys[existing_index] == incoming_keys[incoming_index]) {
+					append_existing(existing_index++);
+					++incoming_index;
+				} else if (_compare(_keys[existing_index], incoming_keys[incoming_index])) {
+					append_existing(existing_index++);
+				} else {
+					assert(_compare(incoming_keys[incoming_index], _keys[existing_index]));
+					append_incoming(incoming_index++);
+				}
 			} else {
-				const auto existing_group_end = ordering_group_end(_keys, existing_index);
-				const auto incoming_group_end = ordering_group_end(incoming_keys, incoming_index);
-				const auto merged_group_start = merged_keys.size();
-				append_existing_group(existing_index, existing_group_end);
-				append_incoming_group(incoming_index, incoming_group_end, merged_group_start);
-				existing_index = existing_group_end;
-				incoming_index = incoming_group_end;
+				if (_compare(_keys[existing_index], incoming_keys[incoming_index])) {
+					append_existing(existing_index++);
+				} else if (_compare(incoming_keys[incoming_index], _keys[existing_index])) {
+					append_incoming(incoming_index++);
+				} else {
+					append_existing(existing_index++);
+					++incoming_index;
+				}
 			}
 		}
+		while (existing_index < size())
+			append_existing(existing_index++);
+		while (incoming_index < incoming_keys.size())
+			append_incoming(incoming_index++);
 
 		_keys = std::move(merged_keys);
 		_values = std::move(merged_values);
-	}
-
-	template <typename Keys>
-	[[nodiscard]] size_type ordering_group_end(const Keys& keys, size_type first) const
-	{
-		auto last = first + 1;
-		while (last < keys.size() && FlatContainerInternal::ordering_equivalent(keys[first], keys[last], _compare))
-			++last;
-		return last;
 	}
 
 	std::vector<Key> _keys;
@@ -694,25 +670,19 @@ private:
 	template <typename Query>
 	[[nodiscard]] size_type find_index(const Query& key) const
 	{
-		const auto first = lower_bound_index(key);
-		const auto last = upper_bound_index(key);
-		for (auto index = first; index < last; ++index) {
-			if (FlatContainerInternal::keys_equal(_keys[index], key, _compare))
-				return index;
-		}
+		const auto index = lower_bound_index(key);
+		if (index < size() && FlatContainerInternal::lower_bound_matches(_keys[index], key, _compare))
+			return index;
 		return size();
 	}
 
 	template <typename Query>
 	[[nodiscard]] std::pair<size_type, size_type> find_or_insertion_index(const Query& key) const
 	{
-		const auto first = lower_bound_index(key);
-		const auto last = upper_bound_index(key);
-		for (auto index = first; index < last; ++index) {
-			if (FlatContainerInternal::keys_equal(_keys[index], key, _compare))
-				return { index, last };
-		}
-		return { size(), last };
+		const auto index = lower_bound_index(key);
+		if (index < size() && FlatContainerInternal::lower_bound_matches(_keys[index], key, _compare))
+			return { index, index };
+		return { size(), index };
 	}
 
 	void merge_sorted(std::vector<Key>&& incoming_keys)
@@ -723,62 +693,41 @@ private:
 		std::vector<Key> merged_keys;
 		merged_keys.reserve(size() + incoming_keys.size());
 
-		auto append_incoming_group = [&](size_type first, size_type last, size_type merged_group_start) {
-			for (auto index = first; index < last; ++index) {
-				const auto duplicate = std::any_of(merged_keys.begin() + static_cast<difference_type>(merged_group_start), merged_keys.end(),
-					[&](const Key& key) { return FlatContainerInternal::keys_equal(key, incoming_keys[index], _compare); });
-				if (!duplicate)
-					merged_keys.emplace_back(std::move(incoming_keys[index]));
-			}
+		auto append_incoming = [&](size_type index) {
+			if (merged_keys.empty() || !FlatContainerInternal::sorted_keys_equal(merged_keys.back(), incoming_keys[index], _compare))
+				merged_keys.emplace_back(std::move(incoming_keys[index]));
 		};
 
 		auto existing_index = size_type{ 0 };
 		auto incoming_index = size_type{ 0 };
-		while (existing_index < size() || incoming_index < incoming_keys.size()) {
-			if (existing_index == size()) {
-				const auto incoming_group_end = ordering_group_end(incoming_keys, incoming_index);
-				const auto merged_group_start = merged_keys.size();
-				append_incoming_group(incoming_index, incoming_group_end, merged_group_start);
-				incoming_index = incoming_group_end;
-				continue;
-			}
-			if (incoming_index == incoming_keys.size()) {
-				const auto existing_group_end = ordering_group_end(_keys, existing_index);
-				for (; existing_index < existing_group_end; ++existing_index)
-					merged_keys.emplace_back(std::move(_keys[existing_index]));
-				continue;
-			}
-
-			if (_compare(_keys[existing_index], incoming_keys[incoming_index])) {
-				const auto existing_group_end = ordering_group_end(_keys, existing_index);
-				for (; existing_index < existing_group_end; ++existing_index)
-					merged_keys.emplace_back(std::move(_keys[existing_index]));
-			} else if (_compare(incoming_keys[incoming_index], _keys[existing_index])) {
-				const auto incoming_group_end = ordering_group_end(incoming_keys, incoming_index);
-				const auto merged_group_start = merged_keys.size();
-				append_incoming_group(incoming_index, incoming_group_end, merged_group_start);
-				incoming_index = incoming_group_end;
+		while (existing_index < size() && incoming_index < incoming_keys.size()) {
+			if constexpr (FlatContainerInternal::EqualityComparable<Key, Key>) {
+				if (_keys[existing_index] == incoming_keys[incoming_index]) {
+					merged_keys.emplace_back(std::move(_keys[existing_index++]));
+					++incoming_index;
+				} else if (_compare(_keys[existing_index], incoming_keys[incoming_index])) {
+					merged_keys.emplace_back(std::move(_keys[existing_index++]));
+				} else {
+					assert(_compare(incoming_keys[incoming_index], _keys[existing_index]));
+					append_incoming(incoming_index++);
+				}
 			} else {
-				const auto existing_group_end = ordering_group_end(_keys, existing_index);
-				const auto incoming_group_end = ordering_group_end(incoming_keys, incoming_index);
-				const auto merged_group_start = merged_keys.size();
-				for (; existing_index < existing_group_end; ++existing_index)
-					merged_keys.emplace_back(std::move(_keys[existing_index]));
-				append_incoming_group(incoming_index, incoming_group_end, merged_group_start);
-				incoming_index = incoming_group_end;
+				if (_compare(_keys[existing_index], incoming_keys[incoming_index])) {
+					merged_keys.emplace_back(std::move(_keys[existing_index++]));
+				} else if (_compare(incoming_keys[incoming_index], _keys[existing_index])) {
+					append_incoming(incoming_index++);
+				} else {
+					merged_keys.emplace_back(std::move(_keys[existing_index++]));
+					++incoming_index;
+				}
 			}
 		}
+		while (existing_index < size())
+			merged_keys.emplace_back(std::move(_keys[existing_index++]));
+		while (incoming_index < incoming_keys.size())
+			append_incoming(incoming_index++);
 
 		_keys = std::move(merged_keys);
-	}
-
-	template <typename Keys>
-	[[nodiscard]] size_type ordering_group_end(const Keys& keys, size_type first) const
-	{
-		auto last = first + 1;
-		while (last < keys.size() && FlatContainerInternal::ordering_equivalent(keys[first], keys[last], _compare))
-			++last;
-		return last;
 	}
 
 	std::vector<Key> _keys;

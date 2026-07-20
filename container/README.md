@@ -12,9 +12,9 @@ Defines `flat_map` and `flat_set`, sorted associative containers backed by vecto
 values in separate vectors and exposes pair-like proxy iterators with `first`/`second` and `key()`/`value()` access.
 Both containers support ordinary insertion, merging from a sorted range, and batched unsorted appends followed
 by tail sorting and merging. Existing entries and the first newly inserted entry win duplicate keys. Key equality uses
-`operator==` when the compared types provide it, otherwise comparator equivalence; equal keys must also be equivalent
-under the comparator. Batch entries are added with `append_unsorted()`; ordered operations and iteration must not be
-used between `begin_batch()` and `end_batch()`.
+`operator==` when the compared types provide it, otherwise comparator equivalence. When both operations are available,
+they must define the same equivalence. Batch entries are added with `append_unsorted()`; ordered operations and
+iteration must not be used between `begin_batch()` and `end_batch()`.
 Map dereference returns its proxy by value, so `auto entry` and `const auto& entry` work in range loops but `auto& entry`
 does not. Read-only standard algorithms and construction of ordinary pair containers are supported; algorithms that
 reorder entries are intentionally ill-formed because keys are immutable.
