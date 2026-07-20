@@ -100,6 +100,18 @@ TEST_CASE("flat_map supports pair-like random-access iteration", "[flat-map]")
 	CHECK((copied == std::vector<std::pair<int, std::string>>{ { 1, "changed again" }, { 2, "two" }, { 3, "three" } }));
 }
 
+TEST_CASE("flat containers compare keys and mapped values", "[flat-map][flat-set]")
+{
+	const flat_map<int, std::string> map{ { 2, "two" }, { 1, "one" } };
+	CHECK((map == flat_map<int, std::string>{ { 1, "one" }, { 2, "two" } }));
+	CHECK_FALSE((map == flat_map<int, std::string>{ { 1, "one" }, { 2, "changed" } }));
+	CHECK_FALSE((map == flat_map<int, std::string>{ { 1, "one" } }));
+
+	const flat_set<int> set{ 2, 1 };
+	CHECK((set == flat_set<int>{ 1, 2 }));
+	CHECK_FALSE((set == flat_set<int>{ 1, 3 }));
+}
+
 TEST_CASE("flat containers use equality after lower bound for duplicate detection", "[flat-map][flat-set]")
 {
 	flat_map<counted_key, int, counted_less> map;

@@ -221,6 +221,13 @@ public:
 	[[nodiscard]] bool batch_open() const noexcept { return _batch_start != no_batch; }
 	[[nodiscard]] const Compare& key_comp() const noexcept { return _compare; }
 
+	[[nodiscard]] friend bool operator==(const flat_map& left, const flat_map& right)
+	{
+		left.assert_not_batching();
+		right.assert_not_batching();
+		return left._keys == right._keys && left._values == right._values;
+	}
+
 	[[nodiscard]] iterator begin() noexcept { assert_not_batching(); return iterator(this, 0); }
 	[[nodiscard]] const_iterator begin() const noexcept { assert_not_batching(); return const_iterator(this, 0); }
 	[[nodiscard]] const_iterator cbegin() const noexcept { return begin(); }
@@ -399,11 +406,15 @@ public:
 		assert(batch_open());
 		const auto batch_start = _batch_start;
 		_batch_start = no_batch;
+		if (batch_start == 0) {
+			sort_and_deduplicate();
+			return;
+		}
 
 		std::vector<size_type> order(size() - batch_start);
 		for (size_type index = 0; index < order.size(); ++index)
 			order[index] = batch_start + index;
-		std::stable_sort(order.begin(), order.end(), [this](size_type left, size_type right) { return _compare(_keys[left], _keys[right]); });
+		sort_indices_by_key(order);
 
 		std::vector<Key> incoming_keys;
 		std::vector<Mapped> incoming_values;
@@ -462,6 +473,14 @@ private:
 		assert(incoming_keys.size() == incoming_values.size());
 		if (incoming_keys.empty())
 			return;
+		if (empty()) {
+			const auto unique_size = deduplicate_sorted(incoming_keys, incoming_values);
+			incoming_keys.resize(unique_size);
+			incoming_values.resize(unique_size);
+			_keys = std::move(incoming_keys);
+			_values = std::move(incoming_values);
+			return;
+		}
 
 		std::vector<Key> merged_keys;
 		std::vector<Mapped> merged_values;
@@ -512,6 +531,70 @@ private:
 		_values = std::move(merged_values);
 	}
 
+	[[nodiscard]] size_type deduplicate_sorted(std::vector<Key>& keys, std::vector<Mapped>& values) const
+	{
+		assert(keys.size() == values.size());
+		auto unique_size = size_type{ 0 };
+		for (size_type index = 0; index < keys.size(); ++index) {
+			if (unique_size != 0 && FlatContainerInternal::sorted_keys_equal(keys[unique_size - 1], keys[index], _compare))
+				continue;
+			if (unique_size != index) {
+				keys[unique_size] = std::move(keys[index]);
+				values[unique_size] = std::move(values[index]);
+			}
+			++unique_size;
+		}
+		return unique_size;
+	}
+
+	void sort_indices_by_key(std::vector<size_type>& indices) const
+	{
+		std::sort(indices.begin(), indices.end(), [this](size_type left, size_type right) {
+			if constexpr (FlatContainerInternal::EqualityComparable<Key, Key>) {
+				return _keys[left] == _keys[right] ? left < right : _compare(_keys[left], _keys[right]);
+			} else {
+				if (_compare(_keys[left], _keys[right]))
+					return true;
+				if (_compare(_keys[right], _keys[left]))
+					return false;
+				return left < right;
+			}
+		});
+	}
+
+	void sort_and_deduplicate()
+	{
+		std::vector<size_type> order(size());
+		for (size_type index = 0; index < order.size(); ++index)
+			order[index] = index;
+		sort_indices_by_key(order);
+
+		for (size_type start = 0; start < order.size(); ++start) {
+			if (order[start] == start)
+				continue;
+
+			Key key = std::move(_keys[start]);
+			Mapped value = std::move(_values[start]);
+			auto destination = start;
+			for (;;) {
+				const auto source = order[destination];
+				order[destination] = destination;
+				if (source == start) {
+					_keys[destination] = std::move(key);
+					_values[destination] = std::move(value);
+					break;
+				}
+				_keys[destination] = std::move(_keys[source]);
+				_values[destination] = std::move(_values[source]);
+				destination = source;
+			}
+		}
+
+		const auto unique_size = deduplicate_sorted(_keys, _values);
+		_keys.resize(unique_size);
+		_values.resize(unique_size);
+	}
+
 	std::vector<Key> _keys;
 	std::vector<Mapped> _values;
 	[[no_unique_address]] Compare _compare{};
@@ -550,6 +633,13 @@ public:
 	[[nodiscard]] bool batch_open() const noexcept { return _batch_start != no_batch; }
 	[[nodiscard]] const Compare& key_comp() const noexcept { return _compare; }
 	[[nodiscard]] const Compare& value_comp() const noexcept { return _compare; }
+
+	[[nodiscard]] friend bool operator==(const flat_set& left, const flat_set& right)
+	{
+		left.assert_not_batching();
+		right.assert_not_batching();
+		return left._keys == right._keys;
+	}
 
 	[[nodiscard]] const_iterator begin() const noexcept { assert_not_batching(); return _keys.begin(); }
 	[[nodiscard]] const_iterator cbegin() const noexcept { return begin(); }
@@ -640,7 +730,12 @@ public:
 		assert(batch_open());
 		const auto batch_start = _batch_start;
 		_batch_start = no_batch;
-		std::stable_sort(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end(), _compare);
+		std::sort(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end(), _compare);
+		if (batch_start == 0) {
+			_keys.erase(std::unique(_keys.begin(), _keys.end(),
+				[this](const Key& left, const Key& right) { return FlatContainerInternal::sorted_keys_equal(left, right, _compare); }), _keys.end());
+			return;
+		}
 
 		std::vector<Key> incoming_keys(std::make_move_iterator(_keys.begin() + static_cast<difference_type>(batch_start)), std::make_move_iterator(_keys.end()));
 		_keys.erase(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end());
@@ -689,6 +784,12 @@ private:
 	{
 		if (incoming_keys.empty())
 			return;
+		if (empty()) {
+			incoming_keys.erase(std::unique(incoming_keys.begin(), incoming_keys.end(),
+				[this](const Key& left, const Key& right) { return FlatContainerInternal::sorted_keys_equal(left, right, _compare); }), incoming_keys.end());
+			_keys = std::move(incoming_keys);
+			return;
+		}
 
 		std::vector<Key> merged_keys;
 		merged_keys.reserve(size() + incoming_keys.size());
