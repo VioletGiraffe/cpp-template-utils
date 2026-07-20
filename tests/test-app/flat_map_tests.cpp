@@ -156,6 +156,24 @@ TEST_CASE("flat_map merges sorted bulk insertion", "[flat-map]")
 	CHECK(std::equal(map.begin(), map.end(), expected.begin(), expected.end()));
 }
 
+TEST_CASE("flat_map appends strictly ordered unique values without consuming rejected values", "[flat-map]")
+{
+	flat_map<int, move_only_value> map;
+	map.reserve(3);
+	CHECK(map.append_sorted_unique(1, move_only_value(10)));
+	CHECK(map.append_sorted_unique(3, move_only_value(30)));
+
+	move_only_value duplicate(300);
+	CHECK_FALSE(map.append_sorted_unique(3, std::move(duplicate)));
+	CHECK(duplicate.value == 300);
+	move_only_value rejected(20);
+	CHECK_FALSE(map.append_sorted_unique(2, std::move(rejected)));
+	CHECK(rejected.value == 20);
+	CHECK(map.size() == 2);
+	CHECK(map.at(1).value == 10);
+	CHECK(map.at(3).value == 30);
+}
+
 TEST_CASE("flat_map bulk operations handle empty and non-overlapping ranges", "[flat-map]")
 {
 	flat_map<int, int> map;
