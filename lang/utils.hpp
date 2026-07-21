@@ -1,13 +1,6 @@
 #pragma once
 
-/*
-Capture into lambda by moving:
-
-auto object = get_obj();
-auto lambda = [mv(object)] {};
-
-*/
-#define mv(name) name=std::move(name)
+#define mv(name) std::move(name)
 
 #define NON_COPYABLE(T) \
 	T(const T&) = delete; \
