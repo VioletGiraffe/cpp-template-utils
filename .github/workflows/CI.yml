@@ -54,7 +54,7 @@ jobs:
         clang --version
         pushd tests
         $QT_ROOT_DIR/bin/qmake -r -config release CONFIG+=release "DEFINES+=NDEBUG"
-        make -j
+        make -j4
         popd
 
     - name: Linux
@@ -68,7 +68,7 @@ jobs:
         g++ --version
         pushd tests
         $QT_ROOT_DIR/bin/qmake -r -config release CONFIG+=release "DEFINES+=NDEBUG"
-        make -j
+        make -j$(nproc)
         popd
 
     - name: Test run
