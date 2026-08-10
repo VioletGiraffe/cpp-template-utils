@@ -1,41 +1,34 @@
-## Various convenience functions and macros that are hard to categorize.
+# General utilities
 
-### macro_utils.h
+Compile-time, representation, lifetime, and preprocessor helpers that do not belong to a narrower module.
 
-C++ preprocessor tricks.
-* `CONCAT_EXPANDED_ARGUMENTS_2`, `CONCAT_EXPANDED_ARGUMENTS_3` concatenates two or three arguments together. The trick is that any preprocessor definitions in the arguments will get expanded. Naive concatenation (`a##b`) does not expand macros.
-* `STRINGIFY_EXPANDED_ARGUMENT` expands the argument, then stringifies it. Naive stringification (`#a`) does not expand macros.
+| Header | Facility |
+|---|---|
+| `aligned_wrapper.hpp` | `Aligned<T, N>` stores a value at explicit alignment; `CacheLinePadded<T>` selects 128-byte alignment on Apple platforms and 64 bytes elsewhere. |
+| `callback_caller.hpp` | Non-owning subscriber registry with add/remove and interface-method broadcast. By-value arguments remain intact for every subscriber and are moved only into the final call. |
+| `constexpr_algorithms.hpp` | `consteval_for`, fold-based `constexpr_for_fold`/`static_for`, and dispatch from a bounded runtime value to a non-type template argument. |
+| `extra_type_traits.hpp` | Traits for trivial byte serialization, cv/ref removal, specialization detection, member-pointer value type, equality comparability, and random-access sortable containers. |
+| `integer_literals.hpp` | `_u64`, `_i64`, `_u16`, `_i16`, and `_z` fixed-type integer literal suffixes. |
+| `macro_utils.h` | Expansion-aware two/three-token concatenation and stringification macros. |
+| `memory_cast.hpp` | `memory_cast` copies bytes into a trivially serializable target from a same-sized value or caller-supplied pointer; `zero_object` clears an object's raw representation. |
+| `named_type_wrapper.hpp` | `NamedType<T, Tag>` distinguishes otherwise identical trivial values while retaining implicit conversion to `T`; macros generate line-unique named types. |
+| `odd_sized_integer.hpp` | Comparable unsigned integer stored in any native-representation width from one through eight bytes. |
+| `on_scope_exit.hpp` | `EXEC_ON_SCOPE_EXIT` creates a non-movable RAII callback whose automatically generated local name is unique per source line. |
+| `optional_consteval.hpp` | Optional-like value whose construction and access are restricted to constant evaluation. |
+| `static_data_buffer.hpp` | Fixed-capacity byte buffer with logical size, cursor, seek, bounded read/write, direct data access, and range iteration. |
+| `template_magic.hpp` | Intentional compile-failure macros, `sfinae` alias, compile-time type printer, and overload-set builder for visitors. |
 
-### callback_caller.hpp
+## Common patterns
 
-A helper class template for organizing and implementing callbacks (aka listeners, observers). Templated on the interface type, the class supports multiple subscribers and offers the following methods:
-* `addSubscriber(Interface* instance)`
-* `removeSubscriber(Interface* instance)`
-* `template <typename MethodPointer, typename ...Args> void invokeCallback(MethodPointer methodPtr, Args... args)` where MethodPointer is a method of the interface.
+```cpp
+EXEC_ON_SCOPE_EXIT([&] {
+    releaseResource();
+});
 
-### constexpr_algorithms.hpp
+auto visitor = overload{
+    [](int) {},
+    [](const std::string&) {}
+};
+```
 
-A header for storing algorithm-like constexpr snippets:
-
-* `template <int First, int Last, typename Functor> constexpr void static_for(Functor&& f)` calls the functor `f` with each value from the specified integer range. It's like a for loop, but compile time!
-
-### integer_literals.hpp
-
-A collection of custom literal suffixes:
-
-* `_u64` literal results in a value of type `uint64_t`. Example: `uint64_t v = 153_u64;`
-
-### on_scope_exit.hpp
-
-Provides a RAII class that takes a functor in its constructor (e. g. a lambda or `std::function`) and calls it in the destructor. Thus, the code gets called on scope exit. useful for cleanup tasks and whatnot.
-The `EXEC_ON_SCOPE_EXIT` macro will make sure each instance gets its own unique variable name with zero manual work required... As long as you don't stuff more than one executor on a single line.
-
-### template_magic.hpp
-
-Just what it sounds like - a bunch of templates that come in handy during template programming.
-
-* `type_wrapper<T>` would perhaps be better named *type_as_value*. The only thing it does is define member typename `using type = T;`. The purpose is to pass the lightweight instance of `type_wrapper` by value and extract the original type from it. Most necessary for passing type information into template lambdas (`[](auto&& t){}`).
-
-* `value_as_type` is the opposite - it turns value into type through use of non-type template parameters.
-
-* `remove_cv_and_reference_t` combines `std::remove_cv_t` and `std::remove_reference_t` in the right order (which does matter).
+`CallbackCaller` stores raw subscriber pointers and does not manage their lifetime. Subscribers must be removed before destruction. `memory_cast`, `zero_object`, and `odd_sized_integer` operate on object representations; use them only when padding, byte order, and representation stability are acceptable for the intended boundary.

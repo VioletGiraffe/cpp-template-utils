@@ -1,9 +1,15 @@
-## Helper templates for working specifically with std::tuple
+# Tuple utilities
 
-### tuple_helpers.hpp
+`tuple_helpers.hpp` provides compile-time inspection and value iteration in namespace `tuple`.
 
-Defines namespace `tuple`, containing the following templates:
-* `constexpr size_t tuple_size_v_omnivorous` is analogous to `std::tuple_size_v` but accepts types with any cv and ref qualifiers.
-* `indexForType` returns the index of type `T` in the given tuple; results in compilation error if type not present.
-* `visit` implements runtime indexing of a tuple - calls a functor the value at specified index (that need not be known at compile time) as the functor's argument. The argument can be a non-const reference for a non-const tuple, so it can mutate the tuple's items.
-* `for_each` calls a functor with each value from the tuple. Supports both `const` and non-`const` tuples. The argument can be a non-const reference for a non-const tuple, so it can mutate the tuple's items.
+| Facility | Description |
+|---|---|
+| `tuple_size_v_omnivorous<Tuple>` | `std::tuple_size_v` after removing reference qualifiers, accepting const and reference forms. |
+| `indexForType<T>(tuple)` | Compile-time index of `T`; fails compilation when the type is absent. |
+| `size(tuple)` | Compile-time tuple element count. |
+| `for_each(tuple, f)` | Calls `f` with every element in order, preserving tuple and element cv/ref qualifiers so a mutable tuple can be modified. |
+
+```cpp
+std::tuple values{1, 2.0};
+tuple::for_each(values, []<typename T>(T& value) { value += value; });
+```

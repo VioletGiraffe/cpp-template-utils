@@ -1,14 +1,13 @@
-## A collection of arithmetic convenience functions
+# Math utilities
 
-### math.hpp
+`math.hpp` provides small arithmetic templates in namespace `Math`.
 
-Defines a number of template functions for mathematical and arithmetical operations in the `Math` namespace.
-
-* `round` and `floor` functions that accept a second parameter - the number of digits after the decimal point to round or floor to.
-* `round`, `floor` and `ceil` functions that accept an extra template parameter for the output type which can be integer or floating-point.
-* `abs` function suitable both for integer and floating-point values. For integer values, it takes in to account that the opposite value for `std::numeric_limits<T>::min()` is not representable in the same type, so it truncates it to `::max()`.
-* `clamp(T min, T value, T max)` function template.
-* `signum` function template (returns -1 for negative value, 0 for zero and 1 for positive).
-* `squared` function template that accepts an output type that can be larger than the inputtype  to fit the result reliably.
-* `bool isInRange(const T value, const T lowerBound, const T upperBound)` function template.
-* `arithmeticMean`, `geometricMean`: function templates that take a parameter pack and return the mean value of the values in the pack. Can be used to conveniently calculate the mean of 3-4-5 values.
+| Facility | Description |
+|---|---|
+| `round`, `floor`, `ceil` | Decimal-place rounding/flooring and typed numeric conversions for integral and floating-point inputs. |
+| `abs` | Integral and floating absolute value; the unrepresentable magnitude of the signed minimum is saturated to the type's maximum. |
+| `clamp`, `signum`, `squared`, `isInRange` | Bounds, sign, optionally widened square, and inclusive range helpers. |
+| `arithmeticMean`, `geometricMean` | Mean of a short value parameter pack, returned as the explicitly selected result type. |
+| `pow2` | Computes powers of two for positive exponents. |
+| `reduce` | Maps a 32-bit value into `[0, range)` using the high half of a multiply. |
+| `FastMod32` | Precomputes a non-zero divisor's reciprocal data so repeated 32-bit modulo operations avoid division. |
