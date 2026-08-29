@@ -11,3 +11,7 @@
 .vs/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
+/tests/bin/
+*.vcxproj
+tests.vcxproj.filters
+tests.vcxproj.user
