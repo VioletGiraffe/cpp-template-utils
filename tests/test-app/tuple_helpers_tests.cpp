@@ -1,8 +1,12 @@
+#include "compiler/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
+
 #include "tuple/tuple_helpers.hpp"
 #include "utility/constexpr_algorithms.hpp"
 #include "utility/extra_type_traits.hpp"
-#include "compiler/compiler_warnings_control.h"
 #include "string/string_helpers.hpp"
 
 #include <limits>

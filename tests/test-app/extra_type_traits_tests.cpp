@@ -1,4 +1,9 @@
+#include "compiler/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
+
 #include "utility/extra_type_traits.hpp"
 
 TEST_CASE("member_type_from_ptr_t", "[extra_type_traits]") {

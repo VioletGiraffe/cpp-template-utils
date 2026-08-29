@@ -1,4 +1,9 @@
+#include "compiler/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
+
 #include "utility/static_data_buffer.hpp"
 
 TEST_CASE("data_buffer", "[data_buffer]") {
