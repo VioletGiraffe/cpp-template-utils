@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-2022, macos-latest]
 
     steps:
     - name: Checkout
@@ -41,6 +41,7 @@ jobs:
       if: startsWith(matrix.os, 'windows')
       shell: cmd
       run: |
+        cl
         %QT_ROOT_DIR%\bin\qmake.exe -v
         pushd tests
         %QT_ROOT_DIR%\bin\qmake.exe -tp vc -r
