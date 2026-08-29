@@ -14,7 +14,7 @@ mac* | linux* | freebsd {
 win*{
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
 
-	QMAKE_CXXFLAGS += /Zi /FS
+	#QMAKE_CXXFLAGS += /Zi /FS
 	QMAKE_CXXFLAGS += /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = /W4
 
