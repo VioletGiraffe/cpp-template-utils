@@ -684,6 +684,66 @@ TEST_CASE("chunked_deque - iteration", "[chunked_deque]")
 	}
 }
 
+TEST_CASE("chunked_deque - operator[]", "[chunked_deque]")
+{
+	SECTION("indexes follow iteration order across blocks")
+	{
+		chunked_deque<int, 3> deque;
+		fillBack(deque, { 0, 1, 2, 3, 4, 5, 6, 7 });
+
+		const std::vector<int> expected = contents(deque);
+		for (size_t i = 0; i < expected.size(); ++i)
+			CHECK(deque[i] == expected[i]);
+	}
+
+	SECTION("gaps and blocks an erasure emptied are skipped")
+	{
+		chunked_deque<int, 2> deque;
+		fillBack(deque, { 0, 1, 2, 3, 4, 5 });
+		// Empties the middle block outright, and leaves one live element in each of the others.
+		eraseValue(deque, 2);
+		eraseValue(deque, 3);
+		eraseValue(deque, 0);
+		eraseValue(deque, 5);
+
+		const std::vector<int> expected = contents(deque);
+		REQUIRE(expected == std::vector<int>{ 1, 4 });
+		for (size_t i = 0; i < expected.size(); ++i)
+			CHECK(deque[i] == expected[i]);
+	}
+
+	SECTION("elements added at the front are indexed first")
+	{
+		chunked_deque<int, 4> deque;
+		fillBack(deque, { 2, 3 });
+		deque.push_front(1);
+		deque.push_front(0);
+
+		CHECK(deque[0] == 0);
+		CHECK(deque[3] == 3);
+	}
+
+	SECTION("the reference is writable, and const access reaches the same element")
+	{
+		chunked_deque<int, 3> deque;
+		fillBack(deque, { 0, 1, 2, 3 });
+		const chunked_deque<int, 3>& constDeque = deque;
+
+		deque[2] = 42;
+		CHECK(constDeque[2] == 42);
+		CHECK(&deque[2] == &constDeque[2]);
+	}
+
+	SECTION("one element per block")
+	{
+		chunked_deque<int, 1> deque;
+		fillBack(deque, { 0, 1, 2, 3, 4 });
+
+		for (size_t i = 0; i < deque.size(); ++i)
+			CHECK(deque[i] == static_cast<int>(i));
+	}
+}
+
 TEST_CASE("chunked_deque - block size edges", "[chunked_deque]")
 {
 	SECTION("One slot per block")

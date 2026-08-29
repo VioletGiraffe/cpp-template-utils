@@ -33,11 +33,14 @@ linux*|mac*{
 
 *g++*:QMAKE_CXXFLAGS += -fconcepts
 
+DEFINES += CATCH_CONFIG_ENABLE_BENCHMARKING
+
 INCLUDEPATH += $${PWD}/../../
 
 SOURCES += \
 	math_tests.cpp \
 	chunked_deque_tests.cpp \
+	chunked_deque_benchmarks.cpp \
 	flat_map_tests.cpp \
 	multiindex_tests.cpp \
 	odd_sized_integer_tests.cpp \

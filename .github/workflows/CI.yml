@@ -83,3 +83,15 @@ jobs:
     - name: Test run
       if: startsWith(matrix.os, 'windows')
       run: ./tests/bin/tests.exe
+
+    - name: Benchmark run
+      if: startsWith(matrix.os, 'macos')
+      run: ./tests/bin/tests.app/Contents/MacOS/tests '[!benchmark]' --benchmark-samples 10 --benchmark-no-analysis
+
+    - name: Benchmark run
+      if: startsWith(matrix.os, 'ubuntu')
+      run: ./tests/bin/tests '[!benchmark]' --benchmark-samples 10 --benchmark-no-analysis
+
+    - name: Benchmark run
+      if: startsWith(matrix.os, 'windows')
+      run: ./tests/bin/tests.exe '[!benchmark]' --benchmark-samples 10 --benchmark-no-analysis

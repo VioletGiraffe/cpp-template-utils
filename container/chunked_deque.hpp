@@ -96,6 +96,15 @@ private:
 		return 63 - static_cast<size_t>(std::countl_zero(mask));
 	}
 
+	// The slot of the index-th live element of a block, counting up from the lowest.
+	[[nodiscard]] static size_t nthSlot(uint64_t mask, size_t index) noexcept
+	{
+		for (size_t i = 0; i < index; ++i)
+			mask &= mask - 1; // Clears the lowest set bit
+
+		return lowestSlot(mask);
+	}
+
 public:
 	template <bool IsConst>
 	class basic_iterator
@@ -301,6 +310,11 @@ public:
 
 	[[nodiscard]] T& back() noexcept { const auto [block, slot] = backPosition(); return blockAt(block).at(slot); }
 	[[nodiscard]] const T& back() const noexcept { const auto [block, slot] = backPosition(); return blockAt(block).at(slot); }
+
+	// Linear in the block count, not constant: erasure leaves occupancy uneven, so the live elements of every
+	// preceding block have to be counted.
+	[[nodiscard]] T& operator[](size_t index) noexcept { const auto [block, slot] = positionAt(index); return blockAt(block).at(slot); }
+	[[nodiscard]] const T& operator[](size_t index) const noexcept { const auto [block, slot] = positionAt(index); return blockAt(block).at(slot); }
 
 	template <typename... Args>
 	T& emplace_back(Args&&... args)
@@ -515,6 +529,22 @@ private:
 		{
 			if (const uint64_t mask = blockAt(ordinal - 1).mask; mask != 0)
 				return { ordinal - 1, highestSlot(mask) };
+		}
+
+		return { endOrdinal, 0 };
+	}
+
+	[[nodiscard]] std::pair<size_t, size_t> positionAt(size_t index) const noexcept
+	{
+		assert(index < _size);
+		for (size_t ordinal = 0; ordinal < _blockCount; ++ordinal)
+		{
+			const uint64_t mask = blockAt(ordinal).mask;
+			const size_t liveCount = static_cast<size_t>(std::popcount(mask));
+			if (index < liveCount)
+				return { ordinal, nthSlot(mask, index) };
+
+			index -= liveCount;
 		}
 
 		return { endOrdinal, 0 };
