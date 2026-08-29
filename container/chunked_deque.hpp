@@ -56,9 +56,12 @@ public:
 private:
 	struct Block
 	{
-		// Field ordering: no difference for the struct size; mask first puts it in the hot cache line
-		uint64_t mask = 0; // Bit i set: slot i holds a live element
-		Block* nextFree = nullptr; // Only meaningful while the block sits on the free chain
+		// A block is either live or on the free chain, never both, so the two share storage.
+		union
+		{
+			uint64_t mask = 0; // Bit i set: slot i holds a live element
+			Block* nextFree;
+		};
 		// Slots are constructed in place, so the array carries T's alignment: sizeof(T) is a multiple of
 		// alignof(T), which aligns every slot and not just the first.
 		// A class is at least as aligned as its strictest member, so this also makes new Block take the
