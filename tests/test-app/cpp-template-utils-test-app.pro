@@ -20,6 +20,10 @@ win*{
 	QMAKE_CXXFLAGS += /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = /W4
 
+	# MSVC 14.51's code generator faults on chunked_deque_tests.cpp at -O2
+	QMAKE_CXXFLAGS_RELEASE -= -O2
+	QMAKE_CXXFLAGS_RELEASE += -Od
+
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 }
 
