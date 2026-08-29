@@ -119,6 +119,9 @@ namespace {
 		explicit operator int() const noexcept { return value; }
 	};
 
+	STORE_COMPILER_WARNINGS
+	DISABLE_MSVC_WARNING(4324) // structure was padded due to alignment specifier
+
 	struct alignas(32) over_aligned
 	{
 		int value = 0;
@@ -126,6 +129,8 @@ namespace {
 		over_aligned(int v = 0) noexcept : value{ v } {}
 		explicit operator int() const noexcept { return value; }
 	};
+
+	RESTORE_COMPILER_WARNINGS
 
 	// Every operation is applied to both the container and a std::list holding the same sequence, and the two
 	// are compared after each one. Fixed seed: a failure has to be reproducible.

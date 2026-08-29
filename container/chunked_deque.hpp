@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../compiler/compiler_warnings_control.h"
+
 #include <assert.h>
 #include <bit>
 #include <cstddef>
@@ -8,6 +10,9 @@
 #include <new>
 #include <type_traits>
 #include <utility>
+
+STORE_COMPILER_WARNINGS
+DISABLE_MSVC_WARNING(4324) // 'Block': structure was padded due to alignment specifier
 
 // A double-ended queue over fixed-size blocks, with erasure and insertion anywhere in the sequence.
 //
@@ -51,7 +56,12 @@ public:
 private:
 	struct Block
 	{
+		// Field ordering: no difference for the struct size; mask first puts it in the hot cache line
 		uint64_t mask = 0; // Bit i set: slot i holds a live element
+		// Slots are constructed in place, so the array carries T's alignment: sizeof(T) is a multiple of
+		// alignof(T), which aligns every slot and not just the first.
+		// A class is at least as aligned as its strictest member, so this also makes new Block take the
+		// aligned operator new when T is over-aligned.
 		alignas(T) std::byte storage[BlockSize * sizeof(T)];
 
 		[[nodiscard]] void* address(size_t slot) noexcept { return storage + slot * sizeof(T); }
@@ -636,3 +646,5 @@ private:
 	Block* _spareBlock = nullptr; // Absorbs a queue oscillating across a block boundary
 	size_t _size = 0;
 };
+
+RESTORE_COMPILER_WARNINGS
