@@ -7,14 +7,22 @@ RESTORE_COMPILER_WARNINGS
 #include "container/chunked_deque.hpp"
 
 #include <algorithm>
+#include <concepts>
 #include <cstdint>
 #include <initializer_list>
 #include <iterator>
 #include <list>
 #include <memory>
 #include <random>
+#include <ranges>
 #include <stdexcept>
 #include <vector>
+
+// The default block size is otherwise never instantiated: every test names one explicitly.
+static_assert(std::bidirectional_iterator<chunked_deque<int>::iterator>);
+static_assert(std::bidirectional_iterator<chunked_deque<int>::const_iterator>);
+static_assert(std::ranges::bidirectional_range<chunked_deque<int>>);
+static_assert(std::ranges::bidirectional_range<const chunked_deque<int>>);
 
 namespace {
 
@@ -305,18 +313,106 @@ TEST_CASE("chunked_deque - erasure leaves the other elements where they are", "[
 	CHECK(&*iteratorAt(deque, 5) == lastAddress);
 }
 
-TEST_CASE("chunked_deque - an erased slot is not refilled by a push", "[chunked_deque]")
+TEST_CASE("chunked_deque - a push never fills a gap left by an erasure", "[chunked_deque]")
 {
-	// The property that separates this from a container which recycles erased slots: order stays exact.
+	SECTION("A gap between two live elements stays a gap")
+	{
+		// The property that separates this from a container which recycles erased slots: order stays exact.
+		chunked_deque<int, 4> deque;
+		fillBack(deque, { 1, 2, 3, 4 });
+		eraseValue(deque, 2);
+
+		deque.push_back(5);
+		CHECK(contents(deque) == std::vector<int>{ 1, 3, 4, 5 });
+
+		deque.push_front(0);
+		CHECK(contents(deque) == std::vector<int>{ 0, 1, 3, 4, 5 });
+	}
+
+	SECTION("A slot erased at the front of its block is reused, because a push_front belongs there anyway")
+	{
+		chunked_deque<int, 4> deque;
+		fillBack(deque, { 1, 2, 3, 4 });
+		eraseValue(deque, 1); // Frees slot 0, which is below every remaining element
+
+		deque.push_front(0);
+		CHECK(contents(deque) == std::vector<int>{ 0, 2, 3, 4 });
+	}
+
+	SECTION("So is a slot erased at the back of its block")
+	{
+		chunked_deque<int, 4> deque;
+		fillBack(deque, { 1, 2, 3, 4 });
+		eraseValue(deque, 4);
+
+		deque.push_back(5);
+		CHECK(contents(deque) == std::vector<int>{ 1, 2, 3, 5 });
+	}
+}
+
+TEST_CASE("chunked_deque - end() survives everything that adds or drops a block", "[chunked_deque]")
+{
+	chunked_deque<int, 2> deque;
+	const auto endOfEmpty = deque.end();
+	CHECK(deque.begin() == endOfEmpty);
+
+	fillBack(deque, { 1, 2, 3, 4, 5, 6, 7 }); // Several blocks appended, and the pointer map grown
+	CHECK(deque.end() == endOfEmpty);
+	CHECK(deque.begin() != endOfEmpty);
+
+	deque.push_front(0);                      // Prepends a block, renumbering every other one
+	CHECK(deque.end() == endOfEmpty);
+
+	deque.insert(iteratorAt(deque, 3), 9);    // Splits a block
+	CHECK(deque.end() == endOfEmpty);
+
+	while (!deque.empty())
+		deque.pop_front();                    // Releases them again, one at a time
+
+	CHECK(deque.end() == endOfEmpty);
+	CHECK(deque.begin() == endOfEmpty);
+}
+
+TEST_CASE("chunked_deque - elements keep their addresses as the container grows", "[chunked_deque]")
+{
 	chunked_deque<int, 4> deque;
-	fillBack(deque, { 1, 2, 3, 4 });
-	eraseValue(deque, 2);
+	fillBack(deque, { 1, 2, 3, 4, 5 });
 
-	deque.push_back(5);
-	CHECK(contents(deque) == std::vector<int>{ 1, 3, 4, 5 });
+	std::vector<const int*> addresses;
+	for (const int& value : deque)
+		addresses.push_back(&value);
 
-	deque.push_front(0);
-	CHECK(contents(deque) == std::vector<int>{ 0, 1, 3, 4, 5 });
+	// Enough blocks to grow the pointer map several times, and enough prepends to walk its head around the ring
+	for (int value = 6; value <= 2000; ++value)
+		deque.push_back(value);
+	for (int value = 0; value > -500; --value)
+		deque.push_front(value);
+
+	REQUIRE(deque.size() == 2500);
+
+	auto it = std::next(deque.begin(), 500); // Past the prepended elements, at the original first one
+	for (size_t index = 0; index < addresses.size(); ++index, ++it)
+	{
+		CAPTURE(index);
+		CHECK(&*it == addresses[index]);
+		CHECK(*addresses[index] == static_cast<int>(index) + 1);
+	}
+}
+
+TEST_CASE("chunked_deque - the emplace family returns the element it created", "[chunked_deque]")
+{
+	chunked_deque<int, 2> deque;
+	fillBack(deque, { 1, 2, 3 });
+
+	int& atBack = deque.emplace_back(4);
+	CHECK(&atBack == &deque.back());
+
+	int& atFront = deque.emplace_front(0);
+	CHECK(&atFront == &deque.front());
+
+	chunked_deque<int, 2> single;
+	single.push_back(42);
+	CHECK(&single.front() == &single.back());
 }
 
 TEST_CASE("chunked_deque - erase returns the following element", "[chunked_deque]")
@@ -340,14 +436,19 @@ TEST_CASE("chunked_deque - erase returns the following element", "[chunked_deque
 
 	SECTION("The last element yields end()")
 	{
-		CHECK(eraseValue(deque, 5) == deque.end());
+		const auto next = eraseValue(deque, 5);
+		CHECK(next == deque.end());
 	}
 
 	SECTION("Erasing the only element yields end()")
 	{
 		chunked_deque<int, 2> single;
 		single.push_back(42);
-		CHECK(single.erase(single.begin()) == single.end());
+
+		const auto endBeforeErasing = single.end();
+		const auto next = single.erase(single.begin());
+		CHECK(next == single.end());
+		CHECK(next == endBeforeErasing); // Emptying the container released its block, and end() still matches
 		CHECK(single.empty());
 	}
 }
@@ -492,9 +593,11 @@ TEST_CASE("chunked_deque - insert reaches each of its placements", "[chunked_deq
 		chunked_deque<int, 2> deque;
 		fillBack(deque, { 1, 2, 3, 4 }); // Both blocks full
 
-		deque.insert(iteratorAt(deque, 1), 9); // Between 1 and 2, which are adjacent slots
+		const auto inserted = deque.insert(iteratorAt(deque, 1), 9); // Between 1 and 2, which are adjacent slots
 		CHECK(contents(deque) == std::vector<int>{ 1, 9, 2, 3, 4 });
 		CHECK(deque.size() == 5);
+		CHECK(*inserted == 9);
+		CHECK(std::distance(deque.begin(), inserted) == 1); // The split must not have moved the returned position
 	}
 
 	SECTION("Splitting at the first slot of a block")

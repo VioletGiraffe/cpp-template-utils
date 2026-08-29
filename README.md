@@ -18,7 +18,7 @@ Header-only C++20 utility library covering generic containers, compile-time prog
 | Header | Facility |
 |---|---|
 | `container/algorithms.hpp` | Remove/erase-style `ContainerAlgorithms::erase_if()` for sequence containers. |
-| `container/chunked_deque.hpp` | `chunked_deque` over fixed-size blocks with a per-block occupancy bitmask: push/pop at both ends, erasure and insertion anywhere, and no relocation on erasure. An erased slot is never refilled, so sequence order is exact and a block holds its allocation until it drains. |
+| `container/chunked_deque.hpp` | `chunked_deque` over fixed-size blocks with a per-block occupancy bitmask: push/pop at both ends, erasure and insertion anywhere, and no relocation on erasure. A push extends a block's live range but never fills a gap inside it, so sequence order is exact and a block holds its allocation until it drains. |
 | `container/flat_map.hpp` | Vector-backed sorted `flat_map` and `flat_set` with heterogeneous lookup, random-access iteration, ordinary insert/erase, sorted-range merge, and efficient unsorted batch append/finalize. `flat_map` stores keys and values in separate vectors and exposes pair-like proxy references. |
 | `container/iterator_helpers.hpp` | Const forward-iterator wrapper that retains its parent container and can report validity or end reached, plus `cbegin`/`cend` factories. |
 | `container/multi_index.hpp`, `container/multimap_helpers.hpp` | `MultiIndexSet`, owning values uniquely by a primary member and indexing them non-uniquely by a secondary member, with primary, exact-secondary, and secondary-range lookup; includes mapped-value iterator adaptation. |

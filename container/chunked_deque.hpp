@@ -14,21 +14,26 @@
 // Order is block order in the map, then ascending slot index within a block. Each block carries a bitmask of
 // occupied slots, so an element is erased by clearing its bit: nothing is relocated and no block is scanned.
 //
-// The trade against std::deque, which relocates on a middle erase: an erased slot is never refilled by a push,
-// so a block holds its allocation until every element in it is gone. That is what keeps sequence order exact
-// while leaving elements where they are - unlike plf::colony and std::hive, which reuse erased slots on
-// insertion and are therefore unordered.
+// The trade against std::deque, which relocates on a middle erase: a push only extends a block's live range
+// and never fills a gap inside it, so a block holds its allocation until every element in it is gone. That is
+// what keeps sequence order exact while leaving elements where they are - unlike plf::colony and std::hive,
+// which reuse erased slots on insertion and are therefore unordered.
 //
 // Invariants:
 //   _size == 0 iff no blocks are allocated: an operation that empties the container re-anchors it.
-//   push_back writes past the back block's last live slot, so an append cannot land before a live element.
+//   push_back writes above a block's last live slot and push_front below its first, so neither can land out
+//   of sequence. Either may reuse a slot an erasure freed at that end.
 //   Interior blocks may be empty; only the end operations release blocks, and only at the end they touch.
 //
 // Element requirements: destructible and move-constructible. insert() additionally requires a non-throwing
 // move: it relocates a block's tail, and a throw part-way would leave the sequence broken.
 //
-// Iterators are invalidated by any insertion, and by an erasure only if it empties the container. References
-// to elements are stable across erasure and across pushes.
+// Iterator validity:
+//   end() is never invalidated.
+//   insert(), push_front() and pop_front() invalidate every iterator: each can add or drop a block ahead of
+//   the others, renumbering them.
+//   push_back(), pop_back() and erase() leave the other iterators valid; emptying the container invalidates all.
+//   References to elements survive every operation but insert(), which relocates a block's tail to split it.
 template <typename T, size_t BlockSize = 64>
 class chunked_deque
 {
@@ -60,6 +65,10 @@ private:
 	static constexpr uint64_t maskAbove(size_t slot) noexcept { return slot >= 63 ? 0 : ~maskBelow(slot + 1); }
 	// maskAbove runs to bit 63; every use that can reach past the last slot must be bounded by this.
 	static constexpr uint64_t slotsMask = BlockSize == 64 ? ~uint64_t{ 0 } : maskBelow(BlockSize);
+
+	// The block ordinal of end(). A fixed value rather than the block count, so that end() means the same
+	// thing before and after an operation that adds or drops a block.
+	static constexpr size_t endOrdinal = static_cast<size_t>(-1);
 
 	[[nodiscard]] static size_t lowestSlot(uint64_t mask) noexcept
 	{
@@ -115,16 +124,21 @@ public:
 				if (mask != 0)
 				{
 					_slot = lowestSlot(mask);
-					break;
+					return *this;
 				}
 			}
 
+			_blockOrdinal = endOrdinal;
 			return *this;
 		}
 
 		basic_iterator& operator--() noexcept
 		{
-			if (_blockOrdinal < _container->_blockCount)
+			if (_blockOrdinal == endOrdinal)
+			{
+				_blockOrdinal = _container->_blockCount; // Walk back from one past the last block
+			}
+			else
 			{
 				const uint64_t rest = _container->blockAt(_blockOrdinal).mask & maskBelow(_slot);
 				if (rest != 0)
@@ -231,8 +245,8 @@ public:
 	[[nodiscard]] const_iterator begin() const noexcept { const auto [block, slot] = frontPosition(); return { this, block, slot }; }
 	[[nodiscard]] const_iterator cbegin() const noexcept { return begin(); }
 
-	[[nodiscard]] iterator end() noexcept { return { this, _blockCount, 0 }; }
-	[[nodiscard]] const_iterator end() const noexcept { return { this, _blockCount, 0 }; }
+	[[nodiscard]] iterator end() noexcept { return { this, endOrdinal, 0 }; }
+	[[nodiscard]] const_iterator end() const noexcept { return { this, endOrdinal, 0 }; }
 	[[nodiscard]] const_iterator cend() const noexcept { return end(); }
 
 	[[nodiscard]] T& front() noexcept { const auto [block, slot] = frontPosition(); return blockAt(block).at(slot); }
@@ -445,7 +459,7 @@ private:
 				return { ordinal, lowestSlot(mask) };
 		}
 
-		return { _blockCount, 0 };
+		return { endOrdinal, 0 };
 	}
 
 	[[nodiscard]] std::pair<size_t, size_t> backPosition() const noexcept
@@ -456,7 +470,7 @@ private:
 				return { ordinal - 1, highestSlot(mask) };
 		}
 
-		return { _blockCount, 0 };
+		return { endOrdinal, 0 };
 	}
 
 	[[nodiscard]] iterator backPositionIterator() noexcept
