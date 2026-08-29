@@ -686,6 +686,13 @@ TEST_CASE("chunked_deque - copy, move and swap", "[chunked_deque]")
 		CHECK(source.empty());
 	}
 
+	SECTION("Self-move-assignment keeps the elements")
+	{
+		auto* self = &source; // Through a pointer, or the compiler diagnoses the self-move at the call site
+		source = std::move(*self);
+		CHECK(contents(source) == std::vector<int>{ 1, 2, 3, 4, 5 });
+	}
+
 	SECTION("Swap")
 	{
 		chunked_deque<int, 3> other;
@@ -795,6 +802,14 @@ TEST_CASE("chunked_deque - a throwing constructor leaves the container unchanged
 		deque.emplace_back(5);
 		throws_on_nth::constructionsUntilThrow = 0;
 		CHECK_THROWS_AS(deque.emplace_back(9), std::runtime_error);
+	}
+
+	SECTION("From an insertion that had already split the block")
+	{
+		throws_on_nth::constructionsUntilThrow = 0;
+		CHECK_THROWS_AS(deque.emplace(iteratorAt(deque, 1), 9), std::runtime_error);
+		CHECK(deque.size() == 4);
+		CHECK(contents(deque) == std::vector<int>{ 0, 1, 2, 3 }); // The split moved elements but changed no order
 	}
 
 	throws_on_nth::constructionsUntilThrow = -1;
