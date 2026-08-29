@@ -750,6 +750,122 @@ TEST_CASE("chunked_deque - the block map grows and wraps", "[chunked_deque]")
 	CHECK(deque.size() == expected.size());
 }
 
+TEST_CASE("chunked_deque - reserve", "[chunked_deque]")
+{
+	SECTION("Allocates the blocks up front and keeps them through a drain")
+	{
+		chunked_deque<int, 4> deque;
+		deque.reserve(40);
+
+		const size_t reservedBlocks = deque.allocated_block_count();
+		CHECK(reservedBlocks >= 10);
+
+		for (int value = 0; value < 40; ++value)
+			deque.push_back(value);
+
+		CHECK(deque.size() == 40);
+		CHECK(deque.allocated_block_count() == reservedBlocks); // Nothing more was needed
+
+		while (!deque.empty())
+			deque.pop_front();
+
+		CHECK(deque.allocated_block_count() == reservedBlocks); // And nothing was given back
+
+		for (int value = 0; value < 40; ++value)
+			deque.push_front(value);
+
+		CHECK(deque.size() == 40);
+		CHECK(deque.allocated_block_count() == reservedBlocks); // Refilling from the other end also fits
+	}
+
+	SECTION("Covers a container that already holds elements")
+	{
+		chunked_deque<int, 4> deque;
+		fillBack(deque, { 1, 2, 3, 4, 5 });
+		deque.reserve(100);
+
+		const size_t reservedBlocks = deque.allocated_block_count();
+		for (int value = 6; value <= 100; ++value)
+			deque.push_back(value);
+
+		CHECK(deque.allocated_block_count() == reservedBlocks);
+		CHECK(deque.size() == 100);
+		CHECK(deque.front() == 1);
+		CHECK(deque.back() == 100);
+	}
+
+	SECTION("Asking for less than is already held changes nothing")
+	{
+		chunked_deque<int, 4> deque;
+		deque.reserve(100);
+		const size_t reservedBlocks = deque.allocated_block_count();
+
+		deque.reserve(10);
+		CHECK(deque.allocated_block_count() == reservedBlocks);
+
+		deque.reserve(0);
+		CHECK(deque.allocated_block_count() == reservedBlocks);
+	}
+
+	SECTION("reserve(0) on a fresh container allocates nothing")
+	{
+		chunked_deque<int, 4> deque;
+		deque.reserve(0);
+		CHECK(deque.allocated_block_count() == 0);
+	}
+
+	SECTION("shrink_to_fit gives the reserve back")
+	{
+		chunked_deque<int, 4> deque;
+		deque.reserve(100);
+		CHECK(deque.allocated_block_count() > 1);
+
+		deque.shrink_to_fit();
+		CHECK(deque.allocated_block_count() == 0);
+
+		fillBack(deque, { 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+		CHECK(contents(deque) == std::vector<int>{ 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+
+		// Back to retaining a single block, so draining releases all but one
+		while (!deque.empty())
+			deque.pop_back();
+
+		CHECK(deque.allocated_block_count() == 1);
+	}
+
+	SECTION("Elements outlive it unharmed")
+	{
+		tracked::reset();
+		{
+			chunked_deque<tracked, 4> deque;
+			for (int value = 0; value < 10; ++value)
+				deque.emplace_back(value);
+
+			deque.reserve(200);
+			CHECK(tracked::liveCount == 10);
+			CHECK(contents(deque) == std::vector<int>{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+
+			deque.shrink_to_fit();
+			CHECK(contents(deque) == std::vector<int>{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+		}
+
+		CHECK(tracked::liveCount == 0);
+	}
+
+	SECTION("Swap carries the reserve with the container")
+	{
+		chunked_deque<int, 4> reserved;
+		reserved.reserve(100);
+		const size_t reservedBlocks = reserved.allocated_block_count();
+
+		chunked_deque<int, 4> plain;
+		plain.swap(reserved);
+
+		CHECK(plain.allocated_block_count() == reservedBlocks);
+		CHECK(reserved.allocated_block_count() == 0);
+	}
+}
+
 TEST_CASE("chunked_deque - copy, move and swap", "[chunked_deque]")
 {
 	chunked_deque<int, 3> source;

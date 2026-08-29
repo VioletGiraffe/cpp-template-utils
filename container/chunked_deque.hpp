@@ -58,6 +58,7 @@ private:
 	{
 		// Field ordering: no difference for the struct size; mask first puts it in the hot cache line
 		uint64_t mask = 0; // Bit i set: slot i holds a live element
+		Block* nextFree = nullptr; // Only meaningful while the block sits on the free chain
 		// Slots are constructed in place, so the array carries T's alignment: sizeof(T) is a multiple of
 		// alignof(T), which aligns every slot and not just the first.
 		// A class is at least as aligned as its strictest member, so this also makes new Block take the
@@ -234,7 +235,7 @@ public:
 	~chunked_deque() noexcept
 	{
 		clear();
-		delete _spareBlock;
+		releaseFreeBlocks();
 		delete[] _map;
 	}
 
@@ -244,12 +245,45 @@ public:
 		std::swap(_mapCapacity, other._mapCapacity);
 		std::swap(_mapHead, other._mapHead);
 		std::swap(_blockCount, other._blockCount);
-		std::swap(_spareBlock, other._spareBlock);
+		std::swap(_freeBlocks, other._freeBlocks);
+		std::swap(_freeBlockCount, other._freeBlockCount);
+		std::swap(_retainedBlockLimit, other._retainedBlockLimit);
 		std::swap(_size, other._size);
 	}
 
 	[[nodiscard]] size_t size() const noexcept { return _size; }
 	[[nodiscard]] bool empty() const noexcept { return _size == 0; }
+
+	// Pre-allocates the blocks and the map for elementCount elements, and holds those blocks rather than
+	// freeing them when they drain, so that growing to that size by pushes allocates nothing.
+	// A bound on pushes only: erasure can strand slots inside a block that no push will ever fill, and
+	// insert() splits blocks, so neither is covered.
+	void reserve(size_t elementCount)
+	{
+		const size_t blockCount = blocksFor(elementCount);
+		reserveMapCapacity(blockCount);
+		if (blockCount > _retainedBlockLimit)
+			_retainedBlockLimit = blockCount;
+
+		while (_blockCount + _freeBlockCount < blockCount)
+		{
+			Block* block = new Block;
+			block->nextFree = _freeBlocks;
+			_freeBlocks = block;
+			++_freeBlockCount;
+		}
+	}
+
+	// Frees the blocks held in reserve and stops retaining them. The map keeps its capacity.
+	void shrink_to_fit() noexcept
+	{
+		_retainedBlockLimit = defaultRetainedBlockLimit;
+		releaseFreeBlocks();
+	}
+
+	// Blocks currently allocated, in use and held in reserve together. There is no capacity() to go with it:
+	// an erasure can strand slots that no push will reach, so no element count can be promised.
+	[[nodiscard]] size_t allocated_block_count() const noexcept { return _blockCount + _freeBlockCount; }
 
 	[[nodiscard]] iterator begin() noexcept { const auto [block, slot] = frontPosition(); return { this, block, slot }; }
 	[[nodiscard]] const_iterator begin() const noexcept { const auto [block, slot] = frontPosition(); return { this, block, slot }; }
@@ -548,10 +582,12 @@ private:
 
 	[[nodiscard]] Block* acquireBlock()
 	{
-		if (_spareBlock == nullptr)
+		if (_freeBlocks == nullptr)
 			return new Block;
 
-		Block* block = std::exchange(_spareBlock, nullptr);
+		Block* block = _freeBlocks;
+		_freeBlocks = block->nextFree;
+		--_freeBlockCount;
 		block->mask = 0;
 		return block;
 	}
@@ -559,10 +595,34 @@ private:
 	void recycleBlock(Block* block) noexcept
 	{
 		assert(block->mask == 0);
-		if (_spareBlock == nullptr)
-			_spareBlock = block;
-		else
+		if (_freeBlockCount >= _retainedBlockLimit)
+		{
 			delete block;
+			return;
+		}
+
+		block->nextFree = _freeBlocks;
+		_freeBlocks = block;
+		++_freeBlockCount;
+	}
+
+	void releaseFreeBlocks() noexcept
+	{
+		while (_freeBlocks != nullptr)
+		{
+			Block* block = _freeBlocks;
+			_freeBlocks = block->nextFree;
+			delete block;
+		}
+
+		_freeBlockCount = 0;
+	}
+
+	// Two blocks over the exact count: at any moment the front block is filling downwards and the back block
+	// upwards, so up to two of them are partly used while the rest are full.
+	[[nodiscard]] static size_t blocksFor(size_t elementCount) noexcept
+	{
+		return elementCount == 0 ? 0 : (elementCount + BlockSize - 1) / BlockSize + 2;
 	}
 
 	// The map grows first: a block acquired before it would leak if the map's allocation threw.
@@ -583,14 +643,19 @@ private:
 		++_blockCount;
 	}
 
+	void reserveMapSlot() { reserveMapCapacity(_blockCount + 1); }
+
 	// Only the pointer map is ever copied wholesale - one word per block, against a block of elements that
 	// never moves.
-	void reserveMapSlot()
+	void reserveMapCapacity(size_t requiredCapacity)
 	{
-		if (_blockCount < _mapCapacity)
+		if (requiredCapacity <= _mapCapacity)
 			return;
 
-		const size_t newCapacity = _mapCapacity == 0 ? 4 : _mapCapacity * 2;
+		size_t newCapacity = _mapCapacity == 0 ? 4 : _mapCapacity * 2;
+		while (newCapacity < requiredCapacity)
+			newCapacity *= 2;
+
 		Block** newMap = new Block*[newCapacity];
 		for (size_t ordinal = 0; ordinal < _blockCount; ++ordinal)
 			newMap[ordinal] = _map[(_mapHead + ordinal) & (_mapCapacity - 1)];
@@ -643,7 +708,12 @@ private:
 	size_t _mapCapacity = 0;
 	size_t _mapHead = 0;
 	size_t _blockCount = 0;
-	Block* _spareBlock = nullptr; // Absorbs a queue oscillating across a block boundary
+	// One retained block absorbs a queue oscillating across a block boundary; reserve() raises the limit.
+	static constexpr size_t defaultRetainedBlockLimit = 1;
+
+	Block* _freeBlocks = nullptr; // Chain of allocated, unused blocks, linked through Block::nextFree
+	size_t _freeBlockCount = 0;
+	size_t _retainedBlockLimit = defaultRetainedBlockLimit;
 	size_t _size = 0;
 };
 
