@@ -1,4 +1,6 @@
-CONFIG += strict_c++ c++2a
+CONFIG += strict_c++
+CONFIG += c++latest
+
 CONFIG -= qt
 
 TEMPLATE = app
@@ -12,10 +14,9 @@ mac* | linux* | freebsd {
 }
 
 win*{
-	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
+	QMAKE_CXXFLAGS += /permissive- /Zc:__cplusplus
 
-	QMAKE_CXXFLAGS += /Zi /FS
-	QMAKE_CXXFLAGS += /Bt+
+	QMAKE_CXXFLAGS += /Zi /FS /MP
 	QMAKE_CXXFLAGS += /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = /W4
 

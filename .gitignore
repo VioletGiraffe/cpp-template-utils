@@ -1,17 +1,13 @@
 # Build results
 [Dd]ebug/
 [Rr]elease/
-/tests/.qtc_clangd/
 /.qmake.stash
 /Makefile
 /Makefile.*
-/*.vcxproj*
-
-# Visual Studio 2015 cache/options directory
 .vs/
-# Uncomment if you have tasks that create the project's static files in wwwroot
-#wwwroot/
 /tests/bin/
 *.vcxproj
-tests.vcxproj.filters
-tests.vcxproj.user
+.qtcreator/
+.qtc_clangd/
+*.vcxproj*
+*.sln
