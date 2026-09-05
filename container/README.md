@@ -9,7 +9,7 @@ Algorithms, adapters, and containers for STL-compatible code.
 | `algorithms.hpp` | `ContainerAlgorithms::erase_if()` applies the remove/erase idiom to sequence containers. |
 | `chunked_deque.hpp` | `chunked_deque` holds elements in fixed-size blocks, each with an occupancy bitmask, so an erasure anywhere in the sequence clears a bit instead of relocating anything. Push and pop at both ends, insertion anywhere, and stable references. `operator[]` is linear in the block count: uneven occupancy rules out index arithmetic. `reserve()` pre-allocates blocks and keeps them across a drain. |
 | `flat_map.hpp` | Vector-backed sorted `flat_map` and `flat_set` with heterogeneous lookup, random-access iteration, ordinary insertion/erasure, sorted-range merging, and batched unsorted insertion. |
-| `iterator_helpers.hpp` | `const_forward_iterator_wrapper` retains both an iterator and its parent container, allowing validity and end checks; factories provide wrapped `cbegin`/`cend`. |
+| `iterator_helpers.hpp` | `const_forward_iterator_wrapper` retains both an iterator and its parent container, so `endReached()` needs no second iterator. `isBound()` reports whether a container was supplied, not whether the iterator is still valid. Factories provide wrapped `cbegin`/`cend`. |
 | `multi_index.hpp` | `MultiIndexSet` owns values uniquely by one member and maintains a non-unique secondary-member index with exact and range lookup. |
 | `multimap_helpers.hpp` | `multimap_value_iterator` adapts a multimap iterator to expose only its mapped value while retaining access to the native iterator. |
 | `ordered_containers.hpp` | `ordered_container` adds explicit sorting, lower-bound lookup, and unique sorted insertion to sequence containers. |
