@@ -151,8 +151,10 @@ constexpr bool isInRange(const T value, const T lowerBound, const T upperBound) 
 }
 
 template <typename ResultType, typename... Args>
-constexpr ResultType arithmeticMean(Args&&... args) noexcept
+[[nodiscard]] constexpr ResultType arithmeticMean(Args&&... args) noexcept
 {
+	static_assert(sizeof...(Args) > 0, "The mean of no values is undefined");
+
 	ResultType acc = ResultType(0);
 	constexpr size_t n = sizeof...(Args);
 
@@ -160,18 +162,20 @@ constexpr ResultType arithmeticMean(Args&&... args) noexcept
 		acc += value;
 	}, std::forward<Args>(args)...);
 
-	return acc / n;
+	// n is converted to ResultType: dividing a signed accumulator by size_t would convert it to unsigned first
+	return acc / ResultType(n);
 }
 
 template <typename ResultType, typename... Args>
 [[nodiscard]] constexpr ResultType geometricMean(Args&&... args) noexcept
 {
+	static_assert(sizeof...(Args) > 0, "The mean of no values is undefined");
+
 	ResultType acc = ResultType(1);
-	size_t n = 0;
+	constexpr size_t n = sizeof...(Args);
 
 	pack::for_value([&](auto&& value) {
 		acc *= value;
-		++n;
 	}, std::forward<Args>(args)...);
 
 	return (ResultType)pow(acc, 1.0 / (double)n);
