@@ -11,11 +11,87 @@ RESTORE_COMPILER_WARNINGS
 
 TEST_CASE("pow2", "[math]")
 {
-	uint64_t p = 2;
-	for (uint64_t i = 1; i < 63; ++i, p *= 2)
-		CHECK(Math::pow2(i) == p);
-
+	static_assert(Math::pow2(0) == 1);
+	static_assert(Math::pow2(1) == 2);
 	static_assert(Math::pow2(16) == 65536);
+
+	size_t p = 1;
+	for (size_t i = 0; i < sizeof(size_t) * 8; ++i, p *= 2)
+		CHECK(Math::pow2(i) == p);
+}
+
+TEST_CASE("abs", "[math]")
+{
+	static_assert(Math::abs(0) == 0);
+	static_assert(Math::abs(5) == 5);
+	static_assert(Math::abs(-5) == 5);
+	static_assert(Math::abs(int64_t{-5}) == 5);
+
+	// Unsigned values are their own absolute value, zero included
+	static_assert(Math::abs(0u) == 0u);
+	static_assert(Math::abs(7u) == 7u);
+	static_assert(Math::abs(std::numeric_limits<uint64_t>::max()) == std::numeric_limits<uint64_t>::max());
+
+	// The most negative value saturates
+	static_assert(Math::abs(std::numeric_limits<int32_t>::min()) == std::numeric_limits<int32_t>::max());
+	static_assert(Math::abs(std::numeric_limits<int64_t>::min()) == std::numeric_limits<int64_t>::max());
+	static_assert(Math::abs(std::numeric_limits<int32_t>::min() + 1) == std::numeric_limits<int32_t>::max());
+
+	CHECK(Math::abs(-1.5) == 1.5);
+	CHECK(Math::abs(1.5f) == 1.5f);
+	CHECK(std::signbit(Math::abs(-0.0)) == false);
+}
+
+TEST_CASE("round and floor to a number of decimal digits", "[math]")
+{
+	CHECK(Math::round(1.27, 1) == Approx(1.3));
+	CHECK(Math::round(1.24, 1) == Approx(1.2));
+	CHECK(Math::round(2.0, 3) == Approx(2.0));
+	CHECK(Math::round(1.27f, 1) == Approx(1.3f));
+
+	// Negative values round to the nearest, not towards zero
+	CHECK(Math::round(-1.27, 1) == Approx(-1.3));
+	CHECK(Math::round(-1.24, 1) == Approx(-1.2));
+
+	// Ties go away from zero on both sides
+	CHECK(Math::round(1.25, 1) == Approx(1.3));
+	CHECK(Math::round(-1.25, 1) == Approx(-1.3));
+
+	// Magnitudes past the range of int64_t
+	CHECK(Math::round(1.5e19, 0) == Approx(1.5e19));
+	CHECK(Math::floor(-1.5e19, 0) == Approx(-1.5e19));
+
+	CHECK(Math::floor(1.29, 1) == Approx(1.2));
+	CHECK(Math::floor(-1.0, 2) == Approx(-1.0));
+
+	// floor goes towards negative infinity, not towards zero
+	CHECK(Math::floor(-1.21, 1) == Approx(-1.3));
+	CHECK(Math::floor(-1.29, 1) == Approx(-1.3));
+}
+
+TEST_CASE("round and floor to an integral type", "[math]")
+{
+	static_assert(Math::round<int>(1.4) == 1);
+	static_assert(Math::round<int>(1.5) == 2);
+	static_assert(Math::round<int>(1.7) == 2);
+	static_assert(Math::round<int>(0.0) == 0);
+
+	// Half away from zero on the negative side too
+	static_assert(Math::round<int>(-1.4) == -1);
+	static_assert(Math::round<int>(-1.5) == -2);
+	static_assert(Math::round<int>(-1.7) == -2);
+	static_assert(Math::round<int64_t>(-2.5) == -3);
+
+	static_assert(Math::round<int>(42) == 42);
+	static_assert(Math::round<int64_t>(-42) == -42);
+
+	CHECK(Math::round<float>(-1.6) == -2.0f);
+	CHECK(Math::round<float>(-1.6, false) == -1.6f);
+
+	// floor goes towards negative infinity where round goes to the nearest
+	CHECK(Math::floor<int>(1.9) == 1);
+	CHECK(Math::floor<int>(-1.2) == -2);
+	static_assert(Math::floor<int>(42) == 42);
 }
 
 TEST_CASE("arithmeticMean", "[math]")

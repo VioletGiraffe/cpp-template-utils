@@ -6,6 +6,7 @@
 #include <limits>
 #include <type_traits>
 
+#include <assert.h>
 #include <stdint.h>
 #include <math.h>
 
@@ -20,8 +21,7 @@ T round(T value, int numDecimalDigits) noexcept
 {
 	static_assert(std::is_floating_point<T>::value, "This function is only intended for floating-point values");
 	const T factor = pow(T(10), T(numDecimalDigits));
-	const int64_t integer = int64_t(value * factor + T(0.5));
-	return T(integer) / factor;
+	return ::round(value * factor) / factor;
 }
 
 template <typename T>
@@ -29,8 +29,7 @@ T floor(T value, int numDecimalDigits) noexcept
 {
 	static_assert(std::is_floating_point<T>::value, "This function is only intended for floating-point values");
 	const T factor = pow(T(10), T(numDecimalDigits));
-	const int64_t integer = int64_t(value * factor);
-	return T(integer) / factor;
+	return ::floor(value * factor) / factor;
 }
 
 template <typename OutType, typename InType>
@@ -65,8 +64,8 @@ template <typename OutType, typename InType>
 constexpr typename std::enable_if<std::is_integral<OutType>::value && std::is_floating_point<InType>::value, OutType>::type round(InType value)  noexcept
 {
 	static_assert(std::is_floating_point<InType>::value, "This function is only intended for floating-point values");
-	const OutType integer = OutType(value + InType(0.5));
-	return integer;
+	// The offset carries the sign of the value: rounding half away from zero, as ::round does
+	return OutType(value >= InType(0) ? value + InType(0.5) : value - InType(0.5));
 }
 
 template <typename OutType, typename InType>
@@ -79,9 +78,11 @@ OutType ceil(InType value) noexcept
 template <typename T>
 constexpr typename std::enable_if<std::is_integral<T>::value, T>::type abs(T value) noexcept
 {
-	if (value > std::numeric_limits<T>::min())
+	if constexpr (std::is_unsigned_v<T>)
+		return value;
+	else if (value > std::numeric_limits<T>::min())
 		return value >= 0 ? value : -value;
-	else
+	else // The most negative value has no positive counterpart: saturate rather than overflow
 		return std::numeric_limits<T>::max();
 }
 
@@ -183,11 +184,8 @@ template <typename ResultType, typename... Args>
 
 [[nodiscard]] constexpr size_t pow2(size_t power) noexcept
 {
-	size_t result = 2;
-	for (size_t i = 1; i < power; ++i)
-		result *= 2;
-
-	return result;
+	assert(power < sizeof(size_t) * 8);
+	return size_t{1} << power;
 }
 
 [[nodiscard]] inline constexpr uint64_t reduce(uint32_t value, uint32_t range) noexcept
