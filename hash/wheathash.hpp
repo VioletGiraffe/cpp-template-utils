@@ -1,8 +1,11 @@
 #pragma once
 
-#include <memory.h>
+#include "../utility/extra_type_traits.hpp"
+
 #include <memory> // std::addressof
+
 #include <stdint.h>
+#include <string.h> // memcpy
 
 namespace wheathash_detail {
 
@@ -62,17 +65,23 @@ inline uint64_t wheathash(const void* key, uint64_t len, uint64_t seed){
 
 [[nodiscard]] inline uint32_t wheathash32(const void* data, uint64_t len) noexcept
 {
-	return static_cast<uint32_t>(wheathash64(data, len) & 0xFFFFFFFFUll);
+	const uint64_t hash = wheathash64(data, len);
+	return static_cast<uint32_t>((hash >> 32) ^ hash);
 }
 
+// wheathash64v hashes the whole object representation, padding bytes included: two objects with equal members but
+// different padding hash differently, and no trait can rule that out.
+
 template <typename T>
-[[nodiscard]] inline uint64_t wheathash64v(T&& value)
+[[nodiscard]] inline uint64_t wheathash64v(T&& value) noexcept
 {
+	static_assert(is_trivially_serializable_v<remove_cv_and_reference_t<T>>, "Hashing an object by its representation requires a trivially serializable type");
 	return wheathash64(std::addressof(value), sizeof(value));
 }
 
 template <typename T>
-[[nodiscard]] inline uint64_t wheathash64v(T&& value, uint64_t seed)
+[[nodiscard]] inline uint64_t wheathash64v(T&& value, uint64_t seed) noexcept
 {
+	static_assert(is_trivially_serializable_v<remove_cv_and_reference_t<T>>, "Hashing an object by its representation requires a trivially serializable type");
 	return wheathash64(std::addressof(value), sizeof(value), seed);
 }
