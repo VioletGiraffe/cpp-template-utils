@@ -46,6 +46,7 @@ SOURCES += \
 	iterator_helpers_tests.cpp \
 	multiindex_tests.cpp \
 	odd_sized_integer_tests.cpp \
+	regex_helpers_tests.cpp \
 	set_operations_tests.cpp \
 	static_data_buffer_tests.cpp \
 	constexpr_algos_tests.cpp \

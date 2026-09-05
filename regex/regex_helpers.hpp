@@ -1,57 +1,43 @@
 #pragma once
 
+#include <assert.h>
 #include <regex>
 #include <string>
 
 namespace regex_helpers {
 
 	template<class CharT, class CharTraits, class Alloc, class RegexTraits, class UnaryFunction>
-	[[nodiscard]] std::basic_string<CharT> regex_replace(const std::basic_string<CharT, CharTraits, Alloc>& str, const std::basic_regex<CharT, RegexTraits>& re, UnaryFunction f)
+	[[nodiscard]] std::basic_string<CharT, CharTraits, Alloc> regex_replace(const std::basic_string<CharT, CharTraits, Alloc>& str, const std::basic_regex<CharT, RegexTraits>& re, UnaryFunction f)
 	{
+		using IteratorType = typename std::basic_string<CharT, CharTraits, Alloc>::const_iterator;
+
 		std::basic_string<CharT, CharTraits, Alloc> result;
-
 		auto endOfLastMatch = str.cbegin();
-		using IteratorType = typename std::basic_string<CharT>::const_iterator;
-		typename std::match_results<IteratorType>::difference_type positionOfLastMatch = 0;
 
-		auto callback = [&](const std::match_results<IteratorType>& match)
+		for (std::regex_iterator<IteratorType, CharT, RegexTraits> it(str.cbegin(), str.cend(), re), end; it != end; ++it)
 		{
-			const auto positionOfThisMatch = match.position(0);
-			const auto diff = positionOfThisMatch - positionOfLastMatch;
-
-			auto startOfThisMatch = endOfLastMatch;
-			std::advance(startOfThisMatch, diff);
-
-			result.append(endOfLastMatch, startOfThisMatch);
+			const auto& match = *it;
+			result.append(endOfLastMatch, match[0].first);
 			result.append(f(match));
-
-			auto lengthOfMatch = match.length(0);
-
-			positionOfLastMatch = positionOfThisMatch + lengthOfMatch;
-
-			endOfLastMatch = startOfThisMatch;
-			std::advance(endOfLastMatch, lengthOfMatch);
-		};
-
-		std::regex_iterator<IteratorType> begin(str.cbegin(), str.cend(), re), end;
-		std::for_each(begin, end, callback);
+			endOfLastMatch = match[0].second;
+		}
 
 		result.append(endOfLastMatch, str.cend());
 
 		return result;
 	}
 
-	template<class CharT, class CharTraits, class Alloc>
-	[[nodiscard]] std::basic_string<CharT> replace_match(
-		const std::basic_string<CharT, CharTraits, Alloc>& str,
-		const std::match_results<typename std::basic_string<CharT, CharTraits, Alloc>::const_iterator>& match,
+	// Returns the matched text with one of its capture groups replaced, not the whole subject sequence
+	template<class BidirIt, class CharT, class CharTraits, class Alloc>
+	[[nodiscard]] std::basic_string<CharT, CharTraits, Alloc> replace_match(
+		const std::match_results<BidirIt>& match,
 		const size_t index,
 		const std::basic_string<CharT, CharTraits, Alloc>& replaceWith)
 	{
-		const auto pos0 = match.position(0), posN = match.position(index);
-		const auto matchLength0 = match.length(0), matchLengthN = match.length(index);
-		return str.substr(pos0, posN - pos0)
+		assert(match.ready() && index < match.size() && match[index].matched);
+
+		return std::basic_string<CharT, CharTraits, Alloc>(match[0].first, match[index].first)
 			+ replaceWith
-			+ str.substr(posN + matchLengthN, pos0 + matchLength0 - posN - matchLengthN);
+			+ std::basic_string<CharT, CharTraits, Alloc>(match[index].second, match[0].second);
 	}
 } // namespace regex_helpers
