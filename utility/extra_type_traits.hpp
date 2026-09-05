@@ -59,3 +59,13 @@ inline constexpr bool is_equal_comparable_v = is_equal_comparable<L, R>::value;
 
 template <typename C>
 inline constexpr bool is_sortable_container_v = std::is_same_v<std::random_access_iterator_tag, typename std::iterator_traits<typename C::iterator>::iterator_category>;
+
+// is_value_preserving_conversion_v<To, From> - true if converting From to To cannot change the value.
+// Rejects narrowing and mixed signedness; accepts any conversion of a type to itself.
+// Integral -> floating-point is accepted despite losing precision beyond the mantissa width: rejecting it would also reject integer literals.
+
+template <typename To, typename From>
+inline constexpr bool is_value_preserving_conversion_v =
+	std::is_same_v<To, From> ||
+	(std::is_integral_v<To> && std::is_integral_v<From> && std::is_signed_v<To> == std::is_signed_v<From> && sizeof(From) <= sizeof(To)) ||
+	(std::is_floating_point_v<To> && (std::is_integral_v<From> || (std::is_floating_point_v<From> && sizeof(From) <= sizeof(To))));

@@ -1,5 +1,6 @@
 #pragma once
 #include "../parameter_pack/parameter_pack_helpers.hpp"
+#include "../utility/extra_type_traits.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -89,6 +90,40 @@ template <typename T>
 typename std::enable_if<std::is_floating_point<T>::value, T>::type abs(T value) noexcept
 {
 	return ::fabs(value);
+}
+
+namespace detail {
+
+template <typename Comparator, typename T, typename... Rest>
+[[nodiscard]] constexpr T extremum(const Comparator isBetter, const T first, const Rest... rest) noexcept
+{
+	static_assert((is_value_preserving_conversion_v<T, Rest> && ...), "Every argument must convert to the type of the first one without losing value");
+
+	T result = first;
+	pack::for_value([&](const T value) {
+		if (isBetter(value, result))
+			result = value;
+	}, static_cast<T>(rest)...);
+
+	return result;
+}
+
+} // namespace detail
+
+// minimum and maximum return the type of the first argument and convert the rest to it.
+// The other arguments must convert to it without losing value: cast explicitly for a lossy conversion.
+// Ties keep the leftmost argument.
+
+template <typename T, typename... Rest>
+[[nodiscard]] constexpr T maximum(const T first, const Rest... rest) noexcept
+{
+	return detail::extremum([](const T left, const T right) { return left > right; }, first, rest...);
+}
+
+template <typename T, typename... Rest>
+[[nodiscard]] constexpr T minimum(const T first, const Rest... rest) noexcept
+{
+	return detail::extremum([](const T left, const T right) { return left < right; }, first, rest...);
 }
 
 template<typename T>
