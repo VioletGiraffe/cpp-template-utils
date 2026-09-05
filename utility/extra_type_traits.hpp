@@ -4,7 +4,7 @@
 
 // is_trivially_serializable
 
-namespace detail {
+namespace type_traits_detail {
 	template <typename T>
 	struct is_trivially_serializable {
 		using BaseT = std::remove_cv_t<T>;
@@ -19,7 +19,7 @@ namespace detail {
 }
 
 template <typename T>
-inline constexpr bool is_trivially_serializable_v = detail::is_trivially_serializable<T>::value;
+inline constexpr bool is_trivially_serializable_v = type_traits_detail::is_trivially_serializable<T>::value;
 
 // remove_cv_and_reference_t
 
@@ -36,13 +36,13 @@ inline constexpr bool is_specialization_of_v<T<Args...>, T> = true;
 
 // member_type_from_ptr - given a pointer to the class data member, retrieves the type of this member
 
-namespace detail {
+namespace type_traits_detail {
 	template <class Class, typename FieldType>
 	FieldType member_type_from_ptr(FieldType Class::*); // No definition needed
 }
 
 template <auto memberPointer>
-using member_type_from_ptr_t = decltype(detail::member_type_from_ptr(memberPointer));
+using member_type_from_ptr_t = decltype(type_traits_detail::member_type_from_ptr(memberPointer));
 
 // is_equal_comparable - is a type equal comparable to another type
 

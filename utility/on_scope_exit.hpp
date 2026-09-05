@@ -5,7 +5,7 @@
 
 #include <utility>
 
-namespace detail {
+namespace scope_exit_detail {
 
 template <typename Functor>
 class OnScopeExitExecutor
@@ -25,6 +25,6 @@ private:
 	const Functor _code;
 };
 
-} // namespace detail
+} // namespace scope_exit_detail
 
-#define EXEC_ON_SCOPE_EXIT ::detail::OnScopeExitExecutor CONCAT_EXPANDED_ARGUMENTS_2(onScopeExit_, __LINE__)
+#define EXEC_ON_SCOPE_EXIT ::scope_exit_detail::OnScopeExitExecutor CONCAT_EXPANDED_ARGUMENTS_2(onScopeExit_, __LINE__)

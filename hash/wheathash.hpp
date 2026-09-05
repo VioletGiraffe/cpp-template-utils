@@ -4,7 +4,7 @@
 #include <memory> // std::addressof
 #include <stdint.h>
 
-namespace detail {
+namespace wheathash_detail {
 
 inline constexpr uint64_t _wheatp0 = 0xa0761d6478bd642full, _wheatp1 = 0xe7037ed1a0b428dbull, _wheatp2 = 0x8ebc6af09c88c6e3ull;
 inline constexpr uint64_t _wheatp3 = 0x589965cc75374cc3ull, _wheatp4 = 0x1d8e4e27c47d124full, _wheatp5 = 0xeb44accab455d165ull;
@@ -48,16 +48,16 @@ inline uint64_t wheathash(const void* key, uint64_t len, uint64_t seed){
 	return seed - (seed >> 31) + (seed << 33);
 }
 
-} // namespace
+} // namespace wheathash_detail
 
 [[nodiscard]] inline uint64_t wheathash64(const void* data, uint64_t len) noexcept
 {
-	return detail::wheathash(data, len, 7733305894521163487ULL /* Completely fair and random seed*/);
+	return wheathash_detail::wheathash(data, len, 7733305894521163487ULL /* Completely fair and random seed*/);
 }
 
 [[nodiscard]] inline uint64_t wheathash64(const void* data, uint64_t len, uint64_t seed) noexcept
 {
-	return detail::wheathash(data, len, seed);
+	return wheathash_detail::wheathash(data, len, seed);
 }
 
 [[nodiscard]] inline uint32_t wheathash32(const void* data, uint64_t len) noexcept
