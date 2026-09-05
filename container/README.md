@@ -12,7 +12,7 @@ Algorithms, adapters, and containers for STL-compatible code.
 | `iterator_helpers.hpp` | `const_forward_iterator_wrapper` retains both an iterator and its parent container, so `endReached()` needs no second iterator. `isBound()` reports whether a container was supplied, not whether the iterator is still valid. Factories provide wrapped `cbegin`/`cend`. |
 | `multi_index.hpp` | `MultiIndexSet` owns values uniquely by one member and maintains a non-unique secondary-member index with exact and range lookup. |
 | `multimap_helpers.hpp` | `multimap_value_iterator` adapts a multimap iterator to expose only its mapped value while retaining access to the native iterator. |
-| `ordered_containers.hpp` | `ordered_container` adds explicit sorting, lower-bound lookup, and unique sorted insertion to sequence containers. |
+| `ordered_containers.hpp` | `ordered_container` adds explicit sorting and lower-bound lookup to sequence containers. |
 | `set_operations.hpp` | Common-prefix, deduplication, difference, three-way diff, and order-insensitive equality algorithms. |
 | `std_container_helpers.hpp` | Begin/end pair macros, transparent `std::set`, and helpers selecting `push_back`/`insert` or member/linear lookup according to container capabilities. |
 | `tracking_allocator.hpp` | Standard allocator wrapper that reports the bytes currently allocated through that allocator instance. |
