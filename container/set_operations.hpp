@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <iterator>
-#include <numeric>
 #include <set>
 #include <type_traits>
 #include <vector>
@@ -22,27 +21,17 @@ OrderedContainerType longestCommonStart(SupersetType<OrderedContainerType, Other
 	if (superset.empty())
 		return OrderedContainerType();
 
-	const size_t minSubsetLength = std::accumulate(cbegin_to_end(superset), std::numeric_limits<size_t>::max(), [](size_t currentMin, const auto& subset) {
-		return std::min(currentMin, (size_t)subset.size());
-	});
+	const auto& firstSubset = superset.front();
+	size_t commonLength = firstSubset.size();
 
-	size_t maxCommonSubsetLength = 0;
-	for (maxCommonSubsetLength = 0; maxCommonSubsetLength < minSubsetLength; ++maxCommonSubsetLength)
+	// The four-argument mismatch stops at the end of the shorter range, so a subset shorter than the prefix clamps it instead of being read past its end
+	for (auto subset = superset.cbegin() + 1, end = superset.cend(); subset != end && commonLength != 0; ++subset)
 	{
-		auto item = *(superset.front().cbegin() + maxCommonSubsetLength);
-		for (auto subset = superset.cbegin() + 1, end = superset.cend(); subset != end; ++subset)
-		{
-			if (item != *(subset->cbegin() + maxCommonSubsetLength))
-			{
-				OrderedContainerType commonSubset;
-				std::copy(subset->cbegin(), subset->cbegin() + maxCommonSubsetLength, std::back_inserter(commonSubset));
-				return commonSubset;
-			}
-		}
+		const auto mismatchPoint = std::mismatch(firstSubset.cbegin(), firstSubset.cbegin() + commonLength, subset->cbegin(), subset->cend()).first;
+		commonLength = size_t(mismatchPoint - firstSubset.cbegin());
 	}
 
-	// No premature exit happened -> all the subsets are equal
-	return superset.front();
+	return OrderedContainerType(firstSubset.cbegin(), firstSubset.cbegin() + commonLength);
 }
 
 //
@@ -58,8 +47,8 @@ enum class ItemOrder {
 
 namespace detail {
 	template<typename T>
-	concept HasReserve = requires(T t) {
-		{ t.reserve() } -> std::same_as<void>;
+	concept HasReserve = requires(T t, size_t n) {
+		t.reserve(n);
 	};
 } // namespace detail
 
@@ -82,8 +71,6 @@ template <ItemOrder order = ItemOrder::DontPreserveOrder, class ContainerType>
 	// Inserting into std::set to check whether or not the item is unique.
 	for (auto it = c.cbegin(), end = c.cend(); it != end; ++it)
 	{
-		ItemRef ref{ it };
-		ref.it = it;
 		auto insertionResult = helperSet.emplace(ItemRef{it}); // true if a new element was inserted
 		const bool unique = insertionResult.second;
 		if constexpr (order == ItemOrder::DontPreserveOrder)
@@ -128,6 +115,10 @@ template <typename ItemType>
 	return set;
 }
 
+// Returns a reference to its argument, so a temporary would leave the caller with a dangling one
+template <typename ItemType>
+void uniqueElements(const std::set<ItemType>&&) = delete;
+
 template <template<typename...> class OutputContainerType, class ContainerType1, class ContainerType2, typename ComparatorType = std::less<>>
 [[nodiscard]] OutputContainerType<typename ContainerType1::value_type, std::allocator<typename ContainerType1::value_type>>
  setTheoreticDifference(
@@ -152,20 +143,24 @@ struct Diff
 	ContainerType elements_from_b_not_in_a;
 };
 
+// Each bucket holds every matching item once, hence the deduplication: each loop carries the multiplicity of the container it iterates.
 template <class ContainerType1, class ContainerType2, class ResultContainerType = ContainerType2>
 [[nodiscard]] Diff<ResultContainerType> calculateDiff(const ContainerType1& a, const ContainerType2& b)
 {
+	const auto& uniqueA = uniqueElements(a);
+	const auto& uniqueB = uniqueElements(b);
+
 	Diff<ResultContainerType> diff;
 
-	for (const auto& item_a: a)
+	for (const auto& item_a: uniqueA)
 	{
-		if (container_aware_find(b, item_a) == std::end(b))
+		if (container_aware_find(uniqueB, item_a) == std::end(uniqueB))
 			add_item(diff.elements_from_a_not_in_b, item_a);
 	}
 
-	for (const auto& item_b : b)
+	for (const auto& item_b : uniqueB)
 	{
-		if (container_aware_find(a, item_b) == std::end(a))
+		if (container_aware_find(uniqueA, item_b) == std::end(uniqueA))
 			add_item(diff.elements_from_b_not_in_a, item_b);
 		else
 			add_item(diff.common_elements, item_b);

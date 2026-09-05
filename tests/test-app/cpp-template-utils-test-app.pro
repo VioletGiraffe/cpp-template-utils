@@ -44,6 +44,7 @@ SOURCES += \
 	flat_map_tests.cpp \
 	multiindex_tests.cpp \
 	odd_sized_integer_tests.cpp \
+	set_operations_tests.cpp \
 	static_data_buffer_tests.cpp \
 	constexpr_algos_tests.cpp \
 	extra_type_traits_tests.cpp \

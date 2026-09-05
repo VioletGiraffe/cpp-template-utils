@@ -25,7 +25,7 @@ template <typename T>
 [[nodiscard]] constexpr T powerOf10(int power) noexcept
 {
 	// 10^22 is the largest power of ten a double holds exactly: 10^n = 2^n * 5^n, and 5^23 exceeds the mantissa
-	static constexpr double powers[] = {
+	constexpr double powers[] = {
 		1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11,
 		1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
 	};
