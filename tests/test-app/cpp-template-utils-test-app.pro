@@ -41,6 +41,7 @@ SOURCES += \
 	math_tests.cpp \
 	chunked_deque_tests.cpp \
 	chunked_deque_benchmarks.cpp \
+	callback_caller_tests.cpp \
 	flat_map_tests.cpp \
 	multiindex_tests.cpp \
 	odd_sized_integer_tests.cpp \

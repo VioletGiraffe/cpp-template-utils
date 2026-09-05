@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <assert.h>
+#include <utility>
 #include <vector>
 
 template <class Interface>
@@ -9,7 +10,7 @@ class CallbackCaller {
 public:
 	void addSubscriber(Interface* instance)
 	{
-		assert(std::find(_subscribers.begin(), _subscribers.end(), instance) == _subscribers.end());
+		assert(!isSubscribed(instance));
 		_subscribers.push_back(instance);
 	}
 
@@ -21,18 +22,31 @@ public:
 	template <typename MethodPointer, typename ...Args>
 	void invokeCallback(MethodPointer methodPtr, Args... args) const
 	{
-		// args are already by-value copies, not forwarding references, so std::forward would move out of them. Only the
-		// last subscriber can safely receive the moved value - every earlier one still needs args intact for the next call.
-		const size_t nSubscribers = _subscribers.size();
-		if (nSubscribers == 0)
-			return;
+		// A callback may subscribe or unsubscribe, so the loop walks a snapshot and re-checks membership immediately
+		// before every call: an instance removed by an earlier callback must not be called, and one added during the
+		// notification must not receive the event in flight.
+		const std::vector<Interface*> snapshot = _subscribers;
 
-		for (size_t i = 0; i < nSubscribers - 1; ++i)
-			(_subscribers[i]->*methodPtr)(args...);
+		// args are by-value copies, not forwarding references, so std::forward moves out of them: only the last
+		// surviving subscriber may receive that. Each call therefore lags one snapshot entry behind the loop.
+		Interface* pending = nullptr;
+		for (Interface* const subscriber: snapshot)
+		{
+			if (pending && isSubscribed(pending))
+				(pending->*methodPtr)(args...);
 
-		(_subscribers[nSubscribers - 1]->*methodPtr)(std::forward<Args>(args)...);
+			pending = subscriber;
+		}
+
+		if (pending && isSubscribed(pending))
+			(pending->*methodPtr)(std::forward<Args>(args)...);
 	}
 
 protected:
+	[[nodiscard]] bool isSubscribed(Interface* instance) const
+	{
+		return std::find(_subscribers.cbegin(), _subscribers.cend(), instance) != _subscribers.cend();
+	}
+
 	std::vector<Interface*> _subscribers;
 };
