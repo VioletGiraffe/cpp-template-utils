@@ -40,6 +40,31 @@ TEST_CASE("longestCommonStart", "[set_operations]")
 	CHECK(SetOperations::longestCommonStart(IntSequences{ { 1, 2, 3 }, { 4, 5 } }).empty());
 }
 
+TEST_CASE("uniqueElements", "[set_operations]")
+{
+	using Ints = std::vector<int>;
+	using Order = SetOperations::ItemOrder;
+
+	CHECK(SetOperations::uniqueElements(Ints{}).empty());
+	CHECK(SetOperations::uniqueElements(Ints{ 1, 2, 3 }) == Ints{ 1, 2, 3 });
+	CHECK(SetOperations::uniqueElements(Ints{ 5, 5, 5 }) == Ints{ 5 });
+
+	// The default keeps the first occurrence of every item, in the order of the input
+	CHECK(SetOperations::uniqueElements(Ints{ 3, 1, 3, 2, 1 }) == Ints{ 3, 1, 2 });
+	CHECK(SetOperations::uniqueElements<Order::KeepFirstOccurrence>(Ints{ 3, 1, 3, 2, 1 }) == Ints{ 3, 1, 2 });
+
+	CHECK(SetOperations::uniqueElements<Order::KeepLastOccurrence>(Ints{ 3, 1, 3, 2, 1 }) == Ints{ 3, 2, 1 });
+	CHECK(SetOperations::uniqueElements<Order::KeepLastOccurrence>(Ints{ 1, 1, 1 }) == Ints{ 1 });
+
+	const std::vector<std::string> strings{ "b", "a", "b" };
+	CHECK(SetOperations::uniqueElements(strings) == std::vector<std::string>{ "b", "a" });
+	CHECK(SetOperations::uniqueElements<Order::KeepLastOccurrence>(strings) == std::vector<std::string>{ "a", "b" });
+
+	// A std::set is already unique and comes back as itself
+	const std::set<int> set{ 1, 2, 3 };
+	CHECK(&SetOperations::uniqueElements(set) == &set);
+}
+
 TEST_CASE("calculateDiff", "[set_operations]")
 {
 	using Ints = std::vector<int>;

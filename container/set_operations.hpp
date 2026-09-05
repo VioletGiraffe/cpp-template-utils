@@ -3,6 +3,7 @@
 #include "std_container_helpers.hpp"
 
 #include <algorithm>
+#include <functional>
 #include <iterator>
 #include <set>
 #include <type_traits>
@@ -40,9 +41,8 @@ OrderedContainerType longestCommonStart(SupersetType<OrderedContainerType, Other
 //
 
 enum class ItemOrder {
-	DontPreserveOrder,
-	KeepLastOccurrence,
-	KeepFirstOccurrence
+	KeepFirstOccurrence,
+	KeepLastOccurrence
 };
 
 namespace detail {
@@ -52,7 +52,7 @@ namespace detail {
 	};
 } // namespace detail
 
-template <ItemOrder order = ItemOrder::DontPreserveOrder, class ContainerType>
+template <ItemOrder order = ItemOrder::KeepFirstOccurrence, class ContainerType>
 [[nodiscard]] ContainerType uniqueElements(const ContainerType& c)
 {
 	using ConstIterator = typename ContainerType::const_iterator;
@@ -66,6 +66,9 @@ template <ItemOrder order = ItemOrder::DontPreserveOrder, class ContainerType>
 	};
 
 	ContainerType result;
+	// c.size() is an upper bound for the result: capacity for the duplicates is the price of not reallocating
+	if constexpr (order == ItemOrder::KeepFirstOccurrence && detail::HasReserve<ContainerType>)
+		result.reserve(c.size());
 
 	std::set<ItemRef> helperSet;
 	// Inserting into std::set to check whether or not the item is unique.
@@ -73,16 +76,14 @@ template <ItemOrder order = ItemOrder::DontPreserveOrder, class ContainerType>
 	{
 		auto insertionResult = helperSet.emplace(ItemRef{it}); // true if a new element was inserted
 		const bool unique = insertionResult.second;
-		if constexpr (order == ItemOrder::DontPreserveOrder)
+		if constexpr (order == ItemOrder::KeepFirstOccurrence)
 		{
 			if (unique)
 				result.insert(result.end(), *it);
 		}
-		else if constexpr (order == ItemOrder::KeepFirstOccurrence)
+		else
 		{
-		}
-		else if constexpr (order == ItemOrder::KeepLastOccurrence)
-		{
+			// emplace keeps the element already in the set, so a later occurrence has to replace it
 			if (!unique)
 			{
 				helperSet.erase(insertionResult.first);
@@ -91,14 +92,15 @@ template <ItemOrder order = ItemOrder::DontPreserveOrder, class ContainerType>
 		}
 	}
 
-	if constexpr (order != ItemOrder::DontPreserveOrder)
+	if constexpr (order == ItemOrder::KeepLastOccurrence)
 	{
+		// helperSet is ordered by value, so sorting the iterators restores the order of c
 		std::vector<ConstIterator> uniqueIterators;
 		uniqueIterators.reserve(helperSet.size());
 		for (const auto& itemRef: helperSet)
 			uniqueIterators.emplace_back(itemRef.it);
 
-		std::sort(uniqueIterators.begin(), uniqueIterators.end(), [](const ConstIterator& l, const ConstIterator& r){return l < r;});
+		std::sort(uniqueIterators.begin(), uniqueIterators.end(), std::less{});
 		if constexpr (detail::HasReserve<ContainerType>)
 			result.reserve(uniqueIterators.size());
 
