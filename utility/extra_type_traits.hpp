@@ -60,6 +60,18 @@ inline constexpr bool is_equal_comparable_v = is_equal_comparable<L, R>::value;
 template <typename C>
 inline constexpr bool is_sortable_container_v = std::is_same_v<std::random_access_iterator_tag, typename std::iterator_traits<typename C::iterator>::iterator_category>;
 
+// is_standard_integer_v - true for the integer types std::cmp_* accepts: every integral type except bool and the character types
+
+template <typename T>
+inline constexpr bool is_standard_integer_v =
+	std::is_integral_v<T> &&
+	!std::is_same_v<std::remove_cv_t<T>, bool> &&
+	!std::is_same_v<std::remove_cv_t<T>, char> &&
+	!std::is_same_v<std::remove_cv_t<T>, char8_t> &&
+	!std::is_same_v<std::remove_cv_t<T>, char16_t> &&
+	!std::is_same_v<std::remove_cv_t<T>, char32_t> &&
+	!std::is_same_v<std::remove_cv_t<T>, wchar_t>;
+
 // is_value_preserving_conversion_v<To, From> - true if converting From to To cannot change the value.
 // Rejects narrowing and mixed signedness; accepts any conversion of a type to itself.
 // Integral -> floating-point is accepted despite losing precision beyond the mantissa width: rejecting it would also reject integer literals.

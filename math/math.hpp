@@ -3,8 +3,10 @@
 #include "../utility/extra_type_traits.hpp"
 
 #include <algorithm>
+#include <iterator>
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 #include <assert.h>
 #include <stdint.h>
@@ -16,11 +18,35 @@
 
 namespace Math {
 
+namespace detail {
+
+// Exact for every power in the table, unlike pow() (also cheap, unlike pow)
+template <typename T>
+[[nodiscard]] constexpr T powerOf10(int power) noexcept
+{
+	// 10^22 is the largest power of ten a double holds exactly: 10^n = 2^n * 5^n, and 5^23 exceeds the mantissa
+	static constexpr double powers[] = {
+		1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11,
+		1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
+	};
+
+	constexpr int largestExactPower = int(std::size(powers)) - 1;
+
+	if (power >= 0 && power <= largestExactPower)
+		return T(powers[power]);
+	else if (power < 0 && power >= -largestExactPower)
+		return T(1.0 / powers[-power]);
+
+	return T(::pow(10.0, double(power)));
+}
+
+} // namespace detail
+
 template <typename T>
 T round(T value, int numDecimalDigits) noexcept
 {
 	static_assert(std::is_floating_point<T>::value, "This function is only intended for floating-point values");
-	const T factor = pow(T(10), T(numDecimalDigits));
+	const T factor = detail::powerOf10<T>(numDecimalDigits);
 	return ::round(value * factor) / factor;
 }
 
@@ -28,7 +54,7 @@ template <typename T>
 T floor(T value, int numDecimalDigits) noexcept
 {
 	static_assert(std::is_floating_point<T>::value, "This function is only intended for floating-point values");
-	const T factor = pow(T(10), T(numDecimalDigits));
+	const T factor = detail::powerOf10<T>(numDecimalDigits);
 	return ::floor(value * factor) / factor;
 }
 
@@ -69,9 +95,17 @@ constexpr typename std::enable_if<std::is_integral<OutType>::value && std::is_fl
 }
 
 template <typename OutType, typename InType>
-OutType ceil(InType value) noexcept
+constexpr typename std::enable_if_t<std::is_integral<InType>::value, OutType> ceil(InType value) noexcept
 {
-	return (OutType) ::ceil(value);
+	static_assert(std::is_integral<InType>::value, "This function is only intended for integer values");
+	return static_cast<OutType>(value);
+}
+
+template <typename OutType, typename InType>
+typename std::enable_if_t<std::is_floating_point<InType>::value, OutType> ceil(InType value) noexcept
+{
+	static_assert(std::is_floating_point<InType>::value, "This function is only intended for floating-point values");
+	return static_cast<OutType>(::ceil(value));
 }
 
 // Integer abs
@@ -136,7 +170,10 @@ constexpr T clamp(T lowerBoundary, T value, T upperBoundary) noexcept
 template <typename T>
 constexpr T signum(T value) noexcept
 {
-	return (value > 0) ? T(1) : ((value < 0) ? T(-1) : T(0));
+	if constexpr (std::is_unsigned_v<T>)
+		return value > 0 ? T(1) : T(0);
+	else
+		return (value > 0) ? T(1) : ((value < 0) ? T(-1) : T(0));
 }
 
 template <typename T, typename ResultType = T>
@@ -145,10 +182,15 @@ constexpr ResultType squared(T value) noexcept
 	return (ResultType)value * (ResultType)value;
 }
 
-template <typename T>
-constexpr bool isInRange(const T value, const T lowerBound, const T upperBound) noexcept
+// Both bounds are inclusive. The arguments need not share a type: a bool result needs no common type, unlike minimum and maximum.
+template <typename T, typename LowerBound, typename UpperBound>
+constexpr bool isInRange(const T value, const LowerBound lowerBound, const UpperBound upperBound) noexcept
 {
-	return value >= lowerBound && value <= upperBound;
+	// The built-in operators would convert the signed operand to unsigned; std::cmp_* compares the actual values
+	if constexpr (is_standard_integer_v<T> && is_standard_integer_v<LowerBound> && is_standard_integer_v<UpperBound>)
+		return std::cmp_greater_equal(value, lowerBound) && std::cmp_less_equal(value, upperBound);
+	else
+		return value >= lowerBound && value <= upperBound;
 }
 
 template <typename ResultType, typename... Args>
@@ -210,6 +252,7 @@ inline uint32_t fastmod_u32(uint32_t a, uint64_t M, uint32_t d) noexcept
 }
 
 inline constexpr uint64_t computeM_u32(uint32_t d) noexcept {
+	assert(d != 0);
 	return UINT64_C(0xFFFFFFFFFFFFFFFF) / d + 1;
 }
 } // namespace detail
@@ -226,8 +269,8 @@ struct FastMod32
 	}
 
 private:
-	const uint64_t M;
-	const uint32_t d;
+	uint64_t M;
+	uint32_t d;
 };
 
 } // namespace Math

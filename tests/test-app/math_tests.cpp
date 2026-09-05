@@ -67,6 +67,13 @@ TEST_CASE("round and floor to a number of decimal digits", "[math]")
 	// floor goes towards negative infinity, not towards zero
 	CHECK(Math::floor(-1.21, 1) == Approx(-1.3));
 	CHECK(Math::floor(-1.29, 1) == Approx(-1.3));
+
+	// A negative digit count rounds to tens, hundreds and so on
+	CHECK(Math::round(1234.0, -2) == Approx(1200.0));
+	CHECK(Math::floor(1299.0, -2) == Approx(1200.0));
+
+	// Past the largest power of ten a double holds exactly
+	CHECK(Math::round(1.5, 30) == Approx(1.5));
 }
 
 TEST_CASE("round and floor to an integral type", "[math]")
@@ -92,6 +99,69 @@ TEST_CASE("round and floor to an integral type", "[math]")
 	CHECK(Math::floor<int>(1.9) == 1);
 	CHECK(Math::floor<int>(-1.2) == -2);
 	static_assert(Math::floor<int>(42) == 42);
+}
+
+TEST_CASE("ceil", "[math]")
+{
+	CHECK(Math::ceil<int>(1.0) == 1);
+	CHECK(Math::ceil<int>(1.1) == 2);
+	CHECK(Math::ceil<int>(-1.9) == -1);
+	CHECK(Math::ceil<int64_t>(-0.5) == 0);
+	CHECK(Math::ceil<double>(2.5) == 3.0);
+
+	static_assert(Math::ceil<int>(42) == 42);
+	static_assert(Math::ceil<int64_t>(-42) == -42);
+}
+
+TEST_CASE("signum", "[math]")
+{
+	static_assert(Math::signum(5) == 1);
+	static_assert(Math::signum(-5) == -1);
+	static_assert(Math::signum(0) == 0);
+
+	static_assert(Math::signum(7u) == 1u);
+	static_assert(Math::signum(0u) == 0u);
+
+	static_assert(Math::signum(-0.5) == -1.0);
+	static_assert(Math::signum(0.0) == 0.0);
+	static_assert(Math::signum(1e300) == 1.0);
+}
+
+TEST_CASE("isInRange", "[math]")
+{
+	static_assert(Math::isInRange(5, 0, 10));
+	static_assert(!Math::isInRange(11, 0, 10));
+	static_assert(!Math::isInRange(-1, 0, 10));
+
+	// Both bounds are inclusive
+	static_assert(Math::isInRange(0, 0, 10));
+	static_assert(Math::isInRange(10, 0, 10));
+
+	// Mixed signedness compares by value, where the built-in operators would convert the signed operand to unsigned
+	static_assert(Math::isInRange(size_t{5}, 0, 10));
+	static_assert(!Math::isInRange(-1, 0u, 10u));
+	static_assert(!Math::isInRange(int64_t{-1}, size_t{0}, size_t{10}));
+	static_assert(!Math::isInRange(std::numeric_limits<uint64_t>::max(), 0, 10));
+
+	// The types std::cmp_* rejects fall back to the built-in operators
+	static_assert(Math::isInRange('c', 'a', 'z'));
+	static_assert(!Math::isInRange('A', 'a', 'z'));
+	static_assert(Math::isInRange(true, false, true));
+
+	static_assert(Math::isInRange(3.5, 0, 10));
+	static_assert(!Math::isInRange(10.5, 0, 10));
+}
+
+TEST_CASE("FastMod32", "[math]")
+{
+	static_assert(std::is_copy_assignable_v<Math::FastMod32>);
+
+	for (const uint32_t divisor : { 1u, 2u, 3u, 7u, 64u, 1000u, 0x7FFFFFFFu, 0xFFFFFFFFu })
+	{
+		const Math::FastMod32 fastMod{ divisor };
+		for (const uint32_t value : { 0u, 1u, 2u, 63u, 1000u, 123456789u, 0xFFFFFFFEu, 0xFFFFFFFFu })
+			CHECK(fastMod.mod(value) == value % divisor);
+	}
 }
 
 TEST_CASE("arithmeticMean", "[math]")
