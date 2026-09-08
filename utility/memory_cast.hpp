@@ -1,26 +1,30 @@
 #pragma once
 
-#include "../utility/extra_type_traits.hpp"
+#include "extra_type_traits.hpp"
 
+#include <bit>
 #include <memory> // std::addressof
 #include <string.h>
-#include <utility>
 
-template <typename TargetType, typename SourceType, typename... TargetType_Constructor_Arguments>
-constexpr TargetType memory_cast(SourceType source, TargetType_Constructor_Arguments&& ...constructorArguments) noexcept
+// is_trivially_serializable_v rejects pointers and arrays: those select the overload below
+template <typename TargetType, typename SourceType> requires is_trivially_serializable_v<SourceType>
+[[nodiscard]] constexpr TargetType memory_cast(const SourceType& source) noexcept
 {
-	static_assert((!std::is_pointer_v<std::remove_cv_t<SourceType>> && is_trivially_serializable_v<SourceType>) || (std::is_pointer_v< std::remove_cv_t<SourceType>> && is_trivially_serializable_v<std::remove_pointer_t<std::remove_cv_t<SourceType>>>));
-	static_assert(!std::is_pointer_v<TargetType> && is_trivially_serializable_v<TargetType>);
+	static_assert(is_trivially_serializable_v<TargetType>, "TargetType must be trivially serializable");
 
-	TargetType value{std::forward<TargetType_Constructor_Arguments>(constructorArguments)...};
-	if constexpr (std::is_pointer_v<SourceType>)
-		::memcpy(std::addressof(value), source, sizeof(value));
-	else
-	{
-		static_assert(sizeof(SourceType) == sizeof(TargetType));
-		::memcpy(std::addressof(value), std::addressof(source), sizeof(value));
-	}
+	return std::bit_cast<TargetType>(source);
+}
 
+// Requires at least sizeof(TargetType) readable bytes at source
+// Not constexpr: memcpy cannot be constant-evaluated
+template <typename TargetType, typename SourceType>
+[[nodiscard]] TargetType memory_cast(const SourceType* const source) noexcept
+{
+	static_assert(is_trivially_serializable_v<TargetType>, "TargetType must be trivially serializable");
+	static_assert(std::is_void_v<SourceType> || is_trivially_serializable_v<SourceType>, "The source must point to raw memory or to a trivially serializable object");
+
+	TargetType value;
+	::memcpy(std::addressof(value), source, sizeof(value));
 	return value;
 }
 

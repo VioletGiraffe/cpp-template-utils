@@ -10,7 +10,7 @@ Compile-time, representation, lifetime, and preprocessor helpers that do not bel
 | `extra_type_traits.hpp` | Traits for trivial byte serialization, cv/ref removal, specialization detection, member-pointer value type, equality comparability, and random-access sortable containers. |
 | `integer_literals.hpp` | `_u64`, `_i64`, `_u16`, `_i16`, and `_z` fixed-type integer literal suffixes. |
 | `macro_utils.h` | Expansion-aware two/three-token concatenation and stringification macros. |
-| `memory_cast.hpp` | `memory_cast` copies bytes into a trivially serializable target from a same-sized value or caller-supplied pointer; `zero_object` clears an object's raw representation. |
+| `memory_cast.hpp` | `memory_cast` reinterprets a trivially serializable value, constant-evaluable via `std::bit_cast`, or reads one out of caller-supplied memory; `zero_object` clears an object's raw representation. |
 | `named_type_wrapper.hpp` | `NamedType<T, Tag>` distinguishes otherwise identical trivial values while retaining implicit conversion to `T`; macros generate line-unique named types. |
 | `odd_sized_integer.hpp` | Comparable unsigned integer stored in any native-representation width from one through eight bytes. |
 | `on_scope_exit.hpp` | `EXEC_ON_SCOPE_EXIT` creates a non-movable RAII callback whose automatically generated local name is unique per source line. |

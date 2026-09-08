@@ -62,7 +62,7 @@ Header-only C++20 utility library covering generic containers, compile-time prog
 | `utility/aligned_wrapper.hpp` | Explicitly aligned value wrapper and platform-sized `CacheLinePadded` alias. |
 | `utility/callback_caller.hpp` | Non-owning multi-subscriber registry that invokes an interface method for every subscriber without prematurely moving by-value arguments. |
 | `utility/integer_literals.hpp` | `_u64`, `_i64`, `_u16`, `_i16`, and `_z` fixed-type integer literals. |
-| `utility/memory_cast.hpp` | Checked byte-copy conversion between trivially serializable representations and whole-object zeroing. |
+| `utility/memory_cast.hpp` | Checked reinterpretation between trivially serializable representations, constant-evaluable for a value source, and whole-object zeroing. |
 | `utility/named_type_wrapper.hpp` | Lightweight strong-ish named wrapper for trivial values, with macros for call-site-unique named types. |
 | `utility/odd_sized_integer.hpp` | Comparable unsigned integer stored in any byte width from 1 through 8. |
 | `utility/on_scope_exit.hpp` | `EXEC_ON_SCOPE_EXIT`, an RAII scope-exit callback with an automatically unique local name. |
