@@ -5,6 +5,7 @@
 #include <bit>
 #include <memory> // std::addressof
 #include <string.h>
+#include <type_traits>
 
 // is_trivially_serializable_v rejects pointers and arrays: those select the overload below
 template <typename TargetType, typename SourceType> requires is_trivially_serializable_v<SourceType>
@@ -31,5 +32,7 @@ template <typename TargetType, typename SourceType>
 template <typename T>
 inline void zero_object(T& object) noexcept
 {
+	static_assert(is_trivially_serializable_v<std::remove_all_extents_t<T>>, "zero_object requires a trivially serializable object, or an array of them");
+
 	::memset(std::addressof(object), 0, sizeof(object));
 }

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "std_container_helpers.hpp"
-
 #include <algorithm>
 #include <assert.h>
+#include <functional>
 
 template <class ContainerType, typename Comparator = std::less<> /* transparent (heterogenous) comparator */>
 class ordered_container : public ContainerType
