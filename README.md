@@ -22,7 +22,7 @@ Header-only C++20 utility library covering generic containers, compile-time prog
 | `container/flat_map.hpp` | Vector-backed sorted `flat_map` and `flat_set` with heterogeneous lookup, random-access iteration, ordinary insert/erase, sorted-range merge, and efficient unsorted batch append/finalize. `flat_map` stores keys and values in separate vectors and exposes pair-like proxy references. |
 | `container/iterator_helpers.hpp` | Const forward iterator that retains its parent container and can check for the end without a second iterator, plus `cbegin`/`cend` factories. |
 | `container/multi_index.hpp`, `container/multimap_helpers.hpp` | `MultiIndexSet`, owning values uniquely by a primary member and indexing them non-uniquely by a secondary member, with primary, exact-secondary, and secondary-range lookup; includes mapped-value iterator adaptation. |
-| `container/ordered_containers.hpp` | Adapter for explicitly sorted sequence containers, adding lower-bound `find`, unique sorted insertion, and sorting. |
+| `container/ordered_containers.hpp` | Adapter for explicitly sorted sequence containers, adding lower-bound `find` and sorting. |
 | `container/set_operations.hpp` | Longest common prefix, stable/configurable deduplication, unordered set difference, three-way diff, and order-insensitive equality across compatible containers (sorting non-set inputs in place). |
 | `container/std_container_helpers.hpp` | Begin/end pair macros, transparent `std::set` alias, and helpers that select `push_back` versus `insert` and member `find` versus `std::find`. |
 | `container/tracking_allocator.hpp` | Standard allocator wrapper that reports bytes currently allocated through that allocator instance. |
@@ -46,7 +46,7 @@ Header-only C++20 utility library covering generic containers, compile-time prog
 | `hash/mixers.h` | `mix_moremur()`, a fast 64-bit integer finalizer/mixer. |
 | `hash/wheathash.hpp` | Seeded or fixed-seed 32/64-bit wheathash for byte ranges and whole object representations. |
 | `math/math.hpp` | Typed rounding/floor/ceil, safe integral and floating absolute value, clamp/sign/square/range helpers, arithmetic/geometric means, powers of two, range reduction, and precomputed fast 32-bit modulo. |
-| `random/randomnumbergenerator.h` | Deterministically seeded generator-plus-distribution wrapper, thread-local static ranged RNG facade, and printable-character specialization. |
+| `random/randomnumbergenerator.h` | Explicitly seeded generator-plus-distribution wrapper, thread-local static ranged RNG facade seeding each thread apart from the others, and printable-character specialization. |
 
 ### Strings and regular expressions
 
