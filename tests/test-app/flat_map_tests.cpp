@@ -147,6 +147,14 @@ namespace {
 		}
 	};
 
+	// Parameterized on the container so the call stays dependent: MSVC diagnoses a ref-qualifier mismatch on a
+	// concrete type eagerly, instead of letting the requires-expression report false
+	template <typename Container>
+	concept extractable_as_lvalue = requires(Container& container) { container.extract(); };
+
+	template <typename Container>
+	concept extractable_as_rvalue = requires(Container& container) { std::move(container).extract(); };
+
 } // namespace
 
 TEST_CASE("flat_map supports pair-like random-access iteration", "[flat-map]")
@@ -1788,5 +1796,247 @@ TEST_CASE("a sorted range past the end is appended without a merge", "[flat-map]
 		CHECK((map.keys() == std::vector<int>{ 1, 2, 3 }));
 		CHECK(map.at(2).value == 20);
 		CHECK(map.at(3).value == 30);
+	}
+}
+
+TEST_CASE("flat containers adopt and hand back their backing vectors", "[flat-map][flat-set]")
+{
+	SECTION("a sorted unique vector pair is adopted, not copied")
+	{
+		std::vector<int> keys{ 1, 2, 3 };
+		std::vector<std::string> values{ "one", "two", "three" };
+		const auto* const adopted_keys = keys.data();
+		const auto* const adopted_values = values.data();
+
+		const flat_map<int, std::string> map(sorted_unique, std::move(keys), std::move(values));
+
+		CHECK(map.keys().data() == adopted_keys);
+		CHECK(map.values().data() == adopted_values);
+		CHECK(map.at(3) == "three");
+	}
+
+	SECTION("adopting a sorted vector pair relocates no elements at all")
+	{
+		std::vector<int> keys{ 1, 2, 3 };
+		std::vector<counted_move> values;
+		values.reserve(3);
+		for (int value = 10; value <= 30; value += 10)
+			values.emplace_back(value);
+
+		counted_move::moves = 0;
+		const flat_map<int, counted_move> map(sorted_unique, std::move(keys), std::move(values));
+
+		CHECK(counted_move::moves == 0);
+		CHECK(map.at(2).value == 20);
+	}
+
+	SECTION("an unsorted vector pair is sorted and deduplicated inside the adopted buffer")
+	{
+		std::vector<int> keys{ 3, 1, 2, 1 };
+		std::vector<std::string> values{ "three", "one", "two", "duplicate one" };
+		const auto* const adopted_keys = keys.data();
+
+		const flat_map<int, std::string> map(std::move(keys), std::move(values));
+
+		CHECK(map.keys().data() == adopted_keys);
+		CHECK((map.keys() == std::vector<int>{ 1, 2, 3 }));
+		CHECK((map.values() == std::vector<std::string>{ "one", "two", "three" }));
+	}
+
+	SECTION("extract() empties the container and hands the buffers over")
+	{
+		flat_map<int, std::string> map{ { 1, "one" }, { 2, "two" } };
+		const auto* const original_keys = map.keys().data();
+
+		auto [keys, values] = std::move(map).extract();
+
+		CHECK(keys.data() == original_keys);
+		CHECK((keys == std::vector<int>{ 1, 2 }));
+		CHECK((values == std::vector<std::string>{ "one", "two" }));
+		CHECK(map.empty());
+		CHECK_FALSE(map.batch_open());
+	}
+
+	SECTION("extract() is available only on an rvalue")
+	{
+		static_assert(!extractable_as_lvalue<flat_map<int, int>>);
+		static_assert(extractable_as_rvalue<flat_map<int, int>>);
+		static_assert(!extractable_as_lvalue<flat_set<int>>);
+		static_assert(extractable_as_rvalue<flat_set<int>>);
+	}
+
+	SECTION("storage survives a round trip through the caller")
+	{
+		flat_map<int, std::string> map{ { 1, "one" }, { 2, "two" } };
+		auto [keys, values] = std::move(map).extract();
+		keys.push_back(3);
+		values.push_back("three");
+
+		map.replace(sorted_unique, std::move(keys), std::move(values));
+
+		CHECK((map.keys() == std::vector<int>{ 1, 2, 3 }));
+		CHECK(map.at(3) == "three");
+	}
+
+	SECTION("replace() keeps the comparator the container was built with")
+	{
+		flat_map<int, int, directional_less> map(directional_less{ true });
+		map.replace(sorted_unique, std::vector<int>{ 3, 2, 1 }, std::vector<int>{ 30, 20, 10 });
+
+		CHECK((map.keys() == std::vector<int>{ 3, 2, 1 }));
+		CHECK(map.at(2) == 20);
+		CHECK_FALSE(map.contains(4));
+
+		// The untagged overload sorts by that same comparator
+		map.replace(std::vector<int>{ 5, 9, 7 }, std::vector<int>{ 50, 90, 70 });
+		CHECK((map.keys() == std::vector<int>{ 9, 7, 5 }));
+		CHECK(map.at(7) == 70);
+	}
+
+	SECTION("flat_set adopts, extracts and replaces the same way")
+	{
+		std::vector<int> keys{ 1, 2, 3 };
+		const auto* const adopted = keys.data();
+		flat_set<int> set(sorted_unique, std::move(keys));
+		CHECK(set.keys().data() == adopted);
+
+		auto extracted = std::move(set).extract();
+		CHECK(extracted.data() == adopted);
+		CHECK(set.empty());
+
+		extracted.push_back(4);
+		set.replace(sorted_unique, std::move(extracted));
+		CHECK((set.keys() == std::vector<int>{ 1, 2, 3, 4 }));
+
+		set.replace(std::vector<int>{ 30, 10, 20, 10 });
+		CHECK((set.keys() == std::vector<int>{ 10, 20, 30 }));
+
+		const flat_set<int> sorted_in_place(std::vector<int>{ 3, 1, 2, 1 });
+		CHECK((sorted_in_place.keys() == std::vector<int>{ 1, 2, 3 }));
+	}
+
+	SECTION("the flat_set vector constructor never converts implicitly")
+	{
+		static_assert(std::is_constructible_v<flat_set<int>, std::vector<int>>);
+		static_assert(!std::is_convertible_v<std::vector<int>, flat_set<int>>);
+	}
+
+	SECTION("empty vectors are adopted without a merge")
+	{
+		const flat_map<int, int> map(std::vector<int>{}, std::vector<int>{});
+		CHECK(map.empty());
+
+		flat_set<int> set(std::vector<int>{});
+		CHECK(set.empty());
+		set.replace(std::vector<int>{});
+		CHECK(set.empty());
+	}
+}
+
+TEST_CASE("flat containers merge another container of the same type", "[flat-map][flat-set]")
+{
+	SECTION("the source is consumed and existing entries win the collisions")
+	{
+		flat_map<int, std::string> destination{ { 1, "one" }, { 3, "existing three" } };
+		flat_map<int, std::string> source{ { 2, "two" }, { 3, "dropped three" }, { 4, "four" } };
+
+		destination.merge(std::move(source));
+
+		CHECK((destination.keys() == std::vector<int>{ 1, 2, 3, 4 }));
+		CHECK((destination.values() == std::vector<std::string>{ "one", "two", "existing three", "four" }));
+		CHECK(source.empty());
+		CHECK_FALSE(source.batch_open());
+	}
+
+	SECTION("merging into an empty container adopts the source's buffers")
+	{
+		flat_map<int, int> destination;
+		flat_map<int, int> source{ { 1, 10 }, { 2, 20 } };
+		const auto* const adopted = source.keys().data();
+
+		destination.merge(std::move(source));
+
+		CHECK(destination.keys().data() == adopted);
+		CHECK((destination.keys() == std::vector<int>{ 1, 2 }));
+		CHECK(source.empty());
+	}
+
+	SECTION("an empty source leaves the destination alone")
+	{
+		flat_map<int, int> destination{ { 1, 10 } };
+		destination.merge(flat_map<int, int>{});
+		CHECK((destination.keys() == std::vector<int>{ 1 }));
+	}
+
+	SECTION("a source sorting past the end takes the append path")
+	{
+		flat_map<counted_key, int, counted_less> destination;
+		std::vector<std::pair<counted_key, int>> initial;
+		for (int value = 0; value < 100; ++value)
+			initial.emplace_back(counted_key{ value }, value);
+		destination.insert_sorted(initial.begin(), initial.end());
+
+		flat_map<counted_key, int, counted_less> source;
+		CHECK(source.append_sorted_unique(counted_key{ 100 }, 100));
+		CHECK(source.append_sorted_unique(counted_key{ 101 }, 101));
+
+		counted_less::calls = 0;
+		destination.merge(std::move(source));
+
+		// A merge walks all 100 existing keys; the append path only tests the boundary
+		CHECK(counted_less::calls < 10);
+		CHECK(destination.size() == 102);
+		CHECK(destination.at(counted_key{ 101 }) == 101);
+	}
+
+	SECTION("a move-only mapped value crosses over without a copy")
+	{
+		flat_map<int, move_only_value> destination;
+		CHECK(destination.append_sorted_unique(1, move_only_value(10)));
+
+		flat_map<int, move_only_value> source;
+		CHECK(source.append_sorted_unique(0, move_only_value(0)));
+		CHECK(source.append_sorted_unique(2, move_only_value(20)));
+
+		destination.merge(std::move(source));
+
+		CHECK((destination.keys() == std::vector<int>{ 0, 1, 2 }));
+		CHECK(destination.at(2).value == 20);
+		CHECK(source.empty());
+	}
+
+	SECTION("a stateful comparator orders the merge")
+	{
+		flat_map<int, int, directional_less> destination(directional_less{ true });
+		CHECK(destination.append_sorted_unique(9, 90));
+		CHECK(destination.append_sorted_unique(5, 50));
+
+		flat_map<int, int, directional_less> source(directional_less{ true });
+		CHECK(source.append_sorted_unique(7, 70));
+		CHECK(source.append_sorted_unique(1, 10));
+
+		destination.merge(std::move(source));
+
+		CHECK((destination.keys() == std::vector<int>{ 9, 7, 5, 1 }));
+		CHECK(destination.at(7) == 70);
+	}
+
+	SECTION("flat_set merges the same way")
+	{
+		flat_set<int> destination{ 1, 3 };
+		flat_set<int> source{ 2, 3, 4 };
+
+		destination.merge(std::move(source));
+
+		CHECK((destination.keys() == std::vector<int>{ 1, 2, 3, 4 }));
+		CHECK(source.empty());
+
+		destination.merge(flat_set<int>{});
+		CHECK(destination.size() == 4);
+
+		flat_set<int> adopting;
+		flat_set<int> donor{ 5, 6 };
+		adopting.merge(std::move(donor));
+		CHECK((adopting.keys() == std::vector<int>{ 5, 6 }));
 	}
 }

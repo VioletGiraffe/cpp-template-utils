@@ -39,6 +39,14 @@ namespace FlatContainerInternal {
 			return !compare(query, stored_key); // lower_bound already established !(stored_key < query)
 	}
 
+	template <typename Key, typename Compare>
+	[[nodiscard]] bool sorted_and_unique(const std::vector<Key>& keys, const Compare& compare)
+	{
+		return std::is_sorted(keys.begin(), keys.end(), compare)
+			&& std::adjacent_find(keys.begin(), keys.end(),
+				[&](const Key& left, const Key& right) { return sorted_keys_equal(left, right, compare); }) == keys.end();
+	}
+
 	template <typename T>
 	concept SynthThreeWayComparable = std::three_way_comparable<T> || requires(const T& left, const T& right) {
 		{ left < right } -> std::convertible_to<bool>;
@@ -115,6 +123,10 @@ namespace FlatContainerInternal {
 	};
 
 } // namespace FlatContainerInternal
+
+// Marks the overloads that adopt a caller's vectors as they are: ordered by the container's comparator, no duplicate keys
+struct sorted_unique_t { explicit sorted_unique_t() = default; };
+inline constexpr sorted_unique_t sorted_unique{};
 
 template <typename Key, typename Mapped, typename Compare = std::less<>>
 class flat_map
@@ -240,6 +252,13 @@ public:
 	using reference = typename iterator::reference;
 	using const_reference = typename const_iterator::reference;
 
+	// The storage extract() hands over and replace() takes back, index-aligned as keys() and values() are
+	struct containers
+	{
+		std::vector<Key> keys;
+		std::vector<Mapped> values;
+	};
+
 	flat_map() = default;
 	explicit flat_map(Compare compare): _compare(std::move(compare)) {}
 
@@ -247,6 +266,22 @@ public:
 	flat_map(InputIterator first, InputIterator last, Compare compare = {}): _compare(std::move(compare)) { insert(first, last); }
 
 	flat_map(std::initializer_list<value_type> values, Compare compare = {}): _compare(std::move(compare)) { insert(values); }
+
+	// Adopts the vectors untouched: the caller's ordering and uniqueness are asserted, never established
+	flat_map(sorted_unique_t, std::vector<Key> keys, std::vector<Mapped> values, Compare compare = {})
+		: _keys(std::move(keys)), _values(std::move(values)), _compare(std::move(compare))
+	{
+		assert(_keys.size() == _values.size());
+		assert(FlatContainerInternal::sorted_and_unique(_keys, _compare));
+	}
+
+	// Sorts and deduplicates in place: the entries never leave the vectors handed in
+	flat_map(std::vector<Key> keys, std::vector<Mapped> values, Compare compare = {})
+		: _keys(std::move(keys)), _values(std::move(values)), _compare(std::move(compare))
+	{
+		assert(_keys.size() == _values.size());
+		merge_appended_tail(0);
+	}
 
 	[[nodiscard]] bool empty() const noexcept { return _keys.empty(); }
 	[[nodiscard]] size_type size() const noexcept { return _keys.size(); }
@@ -306,6 +341,49 @@ public:
 	// Const only: a write through a mutable handle could break the sort order or desynchronize the two vectors
 	[[nodiscard]] const std::vector<Key>& keys() const noexcept { assert_not_batching(); return _keys; }
 	[[nodiscard]] const std::vector<Mapped>& values() const noexcept { assert_not_batching(); return _values; }
+
+	// Empties the container: the vectors leave with their capacity, ready to be reworked and handed back
+	[[nodiscard]] containers extract() &&
+	{
+		assert_not_batching();
+		containers extracted{ std::move(_keys), std::move(_values) };
+		clear();
+		return extracted;
+	}
+
+	// Keeps this container's comparator, which assigning a whole new container would replace
+	void replace(sorted_unique_t, std::vector<Key>&& keys, std::vector<Mapped>&& values)
+	{
+		assert_not_batching();
+		assert(keys.size() == values.size());
+		assert(FlatContainerInternal::sorted_and_unique(keys, _compare));
+		_keys = std::move(keys);
+		_values = std::move(values);
+	}
+
+	void replace(std::vector<Key>&& keys, std::vector<Mapped>&& values)
+	{
+		assert_not_batching();
+		assert(keys.size() == values.size());
+		_keys = std::move(keys);
+		_values = std::move(values);
+		// The whole container is the batch: a throw from the comparator then leaves it open for abort_batch()
+		_batch_start = 0;
+		end_batch();
+	}
+
+	// Consumes other entirely: a colliding entry is dropped, not left behind as std::map::merge leaves it
+	// Entries already here win a collision, as they do when a batch ends
+	void merge(flat_map&& other)
+	{
+		assert(this != &other);
+		assert_not_batching();
+		other.assert_not_batching();
+		assert(FlatContainerInternal::sorted_and_unique(other._keys, _compare));
+		// Emptying other up front keeps it empty even when the merge throws partway through moving the entries out
+		auto [keys, values] = std::move(other).extract();
+		merge_sorted(std::move(keys), std::move(values));
+	}
 
 	// Ends an open batch as well
 	void clear() noexcept
@@ -873,6 +951,18 @@ public:
 
 	flat_set(std::initializer_list<Key> values, Compare compare = {}): _compare(std::move(compare)) { insert(values); }
 
+	// Adopts the vector untouched: the caller's ordering and uniqueness are asserted, never established
+	flat_set(sorted_unique_t, std::vector<Key> keys, Compare compare = {}): _keys(std::move(keys)), _compare(std::move(compare))
+	{
+		assert(FlatContainerInternal::sorted_and_unique(_keys, _compare));
+	}
+
+	// Sorts and deduplicates in place: the keys never leave the vector handed in
+	explicit flat_set(std::vector<Key> keys, Compare compare = {}): _keys(std::move(keys)), _compare(std::move(compare))
+	{
+		merge_appended_tail(0);
+	}
+
 	[[nodiscard]] bool empty() const noexcept { return _keys.empty(); }
 	[[nodiscard]] size_type size() const noexcept { return _keys.size(); }
 	[[nodiscard]] bool batch_open() const noexcept { return _batch_start != no_batch; }
@@ -913,6 +1003,44 @@ public:
 
 	// Const only: a write through a mutable handle could break the sort order
 	[[nodiscard]] const std::vector<Key>& keys() const noexcept { assert_not_batching(); return _keys; }
+
+	// Empties the container: the vector leaves with its capacity, ready to be reworked and handed back
+	[[nodiscard]] std::vector<Key> extract() &&
+	{
+		assert_not_batching();
+		auto extracted = std::move(_keys);
+		clear();
+		return extracted;
+	}
+
+	// Keeps this container's comparator, which assigning a whole new container would replace
+	void replace(sorted_unique_t, std::vector<Key>&& keys)
+	{
+		assert_not_batching();
+		assert(FlatContainerInternal::sorted_and_unique(keys, _compare));
+		_keys = std::move(keys);
+	}
+
+	void replace(std::vector<Key>&& keys)
+	{
+		assert_not_batching();
+		_keys = std::move(keys);
+		// The whole container is the batch: a throw from the comparator then leaves it open for abort_batch()
+		_batch_start = 0;
+		end_batch();
+	}
+
+	// Consumes other entirely: a colliding key is dropped, not left behind as std::set::merge leaves it
+	// Keys already here win a collision, as they do when a batch ends
+	void merge(flat_set&& other)
+	{
+		assert(this != &other);
+		assert_not_batching();
+		other.assert_not_batching();
+		assert(FlatContainerInternal::sorted_and_unique(other._keys, _compare));
+		// Emptying other up front keeps it empty even when the merge throws partway through moving the keys out
+		merge_sorted(std::move(other).extract());
+	}
 
 	// Ends an open batch as well
 	void clear() noexcept { _keys.clear(); _batch_start = no_batch; }
