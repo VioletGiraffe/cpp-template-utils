@@ -44,6 +44,7 @@ SOURCES += \
 	callback_caller_tests.cpp \
 	flat_map_tests.cpp \
 	iterator_helpers_tests.cpp \
+	memory_cast_tests.cpp \
 	multiindex_tests.cpp \
 	odd_sized_integer_tests.cpp \
 	regex_helpers_tests.cpp \
