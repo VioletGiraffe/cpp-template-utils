@@ -11,3 +11,4 @@
 .qtc_clangd/
 *.vcxproj*
 *.sln
+/build/

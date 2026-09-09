@@ -37,6 +37,7 @@ DEFINES += CATCH_CONFIG_ENABLE_BENCHMARKING
 
 INCLUDEPATH += $${PWD}/../../
 
+# ../CMakeLists.txt builds the same list and must be updated alongside this one
 SOURCES += \
 	math_tests.cpp \
 	chunked_deque_tests.cpp \

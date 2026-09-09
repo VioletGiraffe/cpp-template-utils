@@ -2,85 +2,34 @@ name: CI
 
 on: [push, pull_request, workflow_dispatch]
 
-env:
-  # Path to the solution file relative to the root of the project.
-  SOLUTION_FILE_PATH: .
-
-  # Configuration type to build.
-  # You can convert this to a build matrix if you need coverage of multiple configuration types.
-  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-  BUILD_CONFIGURATION: Release
-
 jobs:
   build:
-    name: Build & test on ${{ matrix.os }} with ${{ matrix.compiler }}
+    name: Build & test on ${{ matrix.os }}, ${{ matrix.config }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-2022, macos-latest]
+        # Debug keeps the asserts: the containers guard their invariants with them
+        config: [release, debug]
 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: 6.10.*
-        target: desktop
-        archives: 'qtbase icu'
+    - name: Linux - install a compiler with C++20 support
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        sudo apt update -y
+        sudo apt install -qq gcc-14 g++-14
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50
 
-    - name: Windows - set up MSVC environment
-      if: startsWith(matrix.os, 'windows')
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
-
-    - name: Windows
+    - name: Windows - build & test
       if: startsWith(matrix.os, 'windows')
       shell: cmd
-      run: |
-        cl
-        %QT_ROOT_DIR%\bin\qmake.exe -v
-        pushd tests
-        %QT_ROOT_DIR%\bin\qmake.exe -tp vc -r
-        msbuild /t:Build /p:Configuration=Release
-        popd
+      run: scripts\run_tests.bat ${{ matrix.config }}
 
-    - name: Mac
-      if: startsWith(matrix.os, 'macos')
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        clang --version
-        pushd tests
-        $QT_ROOT_DIR/bin/qmake -r -config release CONFIG+=release "DEFINES+=NDEBUG"
-        make -j$(sysctl -n hw.ncpu)
-        popd
-
-    - name: Linux
-      if: startsWith(matrix.os, 'ubuntu')
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        g++ --version
-        sudo apt update -y; sudo apt install -qq gcc-14 g++-14 # modern C++ support
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
-        g++ --version
-        pushd tests
-        $QT_ROOT_DIR/bin/qmake -r -config release CONFIG+=release "DEFINES+=NDEBUG"
-        make -j$(nproc)
-        popd
-
-    - name: Test run
-      if: startsWith(matrix.os, 'macos')
-      run: ./tests/bin/tests.app/Contents/MacOS/tests
-
-    - name: Test run
-      if: startsWith(matrix.os, 'ubuntu')
-      run: ./tests/bin/tests
-
-    - name: Test run
-      if: startsWith(matrix.os, 'windows')
-      run: ./tests/bin/tests.exe
-
+    - name: Unix - build & test
+      if: ${{ !startsWith(matrix.os, 'windows') }}
+      run: ./scripts/run_tests.sh ${{ matrix.config }}
