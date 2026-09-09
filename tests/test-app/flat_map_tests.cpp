@@ -1151,9 +1151,13 @@ TEST_CASE("flat containers erase degenerate ranges", "[flat-map][flat-set]")
 	CHECK(map.empty());
 
 	flat_set<int> set{ 1, 2, 3 };
-	CHECK(set.erase(set.begin(), set.begin()) == set.begin());
+	// Compared through a variable: Catch2 decomposes a CHECK into a call, and its arguments may evaluate before the erase
+	auto set_position = set.erase(set.begin(), set.begin());
+	CHECK(set_position == set.begin());
 	CHECK(set.size() == 3);
-	CHECK(set.erase(set.begin(), set.end()) == set.end());
+
+	set_position = set.erase(set.begin(), set.end());
+	CHECK(set_position == set.end());
 	CHECK(set.empty());
 }
 
