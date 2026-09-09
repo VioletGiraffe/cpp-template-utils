@@ -37,6 +37,14 @@ namespace {
 		const auto* const bytes = reinterpret_cast<const uint8_t*>(std::addressof(object));
 		return std::all_of(bytes, bytes + sizeof(object), [](uint8_t byte) { return byte == 0; });
 	}
+
+	// MSVC reports a failing requires-expression outside a template as an error, so both probes are concepts
+
+	template <typename Target, typename Source>
+	concept castable_from_value = requires (const Source& source) { memory_cast<Target>(source); };
+
+	template <typename Target, typename Source>
+	concept castable_from_pointer = requires (Source* source) { memory_cast<Target>(source); };
 }
 
 // The value overload is constexpr, so a static_assert can only pass if that overload was the one selected
@@ -50,10 +58,10 @@ static_assert(!is_trivially_serializable_v<uint8_t*>);
 static_assert(!is_trivially_serializable_v<const uint8_t*>);
 static_assert(!is_trivially_serializable_v<uint8_t[8]>);
 
-static_assert(requires (const void* p) { memory_cast<uint64_t>(p); });
-static_assert(requires (void* p) { memory_cast<uint64_t>(p); });
+static_assert(castable_from_pointer<uint64_t, const void>);
+static_assert(castable_from_pointer<uint64_t, void>);
 // Matches neither overload: the constraint rejects it, and it is not a pointer to deduce from
-static_assert(!requires (const std::string& s) { memory_cast<uint64_t>(s); });
+static_assert(!castable_from_value<uint64_t, std::string>);
 
 // An unusable target, or a pointer to an unusable source, is diagnosed by a static_assert in the body rather than by
 // a constraint, so it is a hard error and cannot be probed with requires.

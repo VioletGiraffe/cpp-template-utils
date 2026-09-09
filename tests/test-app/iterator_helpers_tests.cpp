@@ -34,16 +34,30 @@ static_assert(std::forward_iterator<const_forward_iterator_wrapper<std::set<int>
 static_assert(std::is_same_v<std::iterator_traits<VectorIterator>::value_type, int>);
 static_assert(std::is_same_v<std::iterator_traits<VectorIterator>::reference, const int&>);
 
+namespace {
+
+	// MSVC reports a failing requires-expression outside a template as an error, so every probe below is a concept
+
+	template <typename Iterator>
+	concept has_arrow = requires (const Iterator& it) { it.operator->(); };
+
+	template <typename Container>
+	concept wraps_lvalue = requires (const Container& c) { forward_iterator_wrapper::cbegin(c); forward_iterator_wrapper::cend(c); };
+
+	// Disjunction, so a negative result proves neither factory accepts a temporary
+	template <typename Container>
+	concept wraps_temporary = requires { forward_iterator_wrapper::cbegin(Container{}); } || requires { forward_iterator_wrapper::cend(Container{}); };
+}
+
 // operator-> exists only where the underlying iterator can supply the pointer
-static_assert(requires (const VectorIterator& it) { it.operator->(); });
-static_assert(!requires (const const_forward_iterator_wrapper<std::vector<bool>>& it) { it.operator->(); });
+static_assert(has_arrow<VectorIterator>);
+static_assert(!has_arrow<const_forward_iterator_wrapper<std::vector<bool>>>);
 
 // A temporary cannot be bound: the wrapper would outlive the container
 static_assert(std::constructible_from<VectorIterator, const std::vector<int>&, std::vector<int>::const_iterator>);
 static_assert(!std::constructible_from<VectorIterator, std::vector<int>&&, std::vector<int>::const_iterator>);
-static_assert(requires (const std::vector<int>& v) { forward_iterator_wrapper::cbegin(v); forward_iterator_wrapper::cend(v); });
-static_assert(!requires { forward_iterator_wrapper::cbegin(std::vector<int>{}); });
-static_assert(!requires { forward_iterator_wrapper::cend(std::vector<int>{}); });
+static_assert(wraps_lvalue<std::vector<int>>);
+static_assert(!wraps_temporary<std::vector<int>>);
 
 TEST_CASE("const_forward_iterator_wrapper - traversal", "[iterator_helpers]")
 {
