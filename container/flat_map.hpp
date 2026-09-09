@@ -203,6 +203,8 @@ private:
 public:
 	using iterator = basic_iterator<false>;
 	using const_iterator = basic_iterator<true>;
+	using reverse_iterator = std::reverse_iterator<iterator>;
+	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 	using reference = typename iterator::reference;
 	using const_reference = typename const_iterator::reference;
 
@@ -235,6 +237,18 @@ public:
 	[[nodiscard]] iterator end() noexcept { assert_not_batching(); return iterator(this, size()); }
 	[[nodiscard]] const_iterator end() const noexcept { assert_not_batching(); return const_iterator(this, size()); }
 	[[nodiscard]] const_iterator cend() const noexcept { return end(); }
+
+	[[nodiscard]] reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
+	[[nodiscard]] const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
+	[[nodiscard]] const_reverse_iterator crbegin() const noexcept { return rbegin(); }
+	[[nodiscard]] reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
+	[[nodiscard]] const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
+	[[nodiscard]] const_reverse_iterator crend() const noexcept { return rend(); }
+
+	[[nodiscard]] reference front() noexcept { return *begin(); }
+	[[nodiscard]] const_reference front() const noexcept { return *begin(); }
+	[[nodiscard]] reference back() noexcept { return *(end() - 1); }
+	[[nodiscard]] const_reference back() const noexcept { return *(end() - 1); }
 
 	// Index-aligned: keys()[i] is the key of values()[i]
 	// Const only: a write through a mutable handle could break the sort order or desynchronize the two vectors
@@ -660,6 +674,8 @@ public:
 	using const_reference = const Key&;
 	using const_iterator = typename std::vector<Key>::const_iterator;
 	using iterator = const_iterator;
+	using const_reverse_iterator = typename std::vector<Key>::const_reverse_iterator;
+	using reverse_iterator = const_reverse_iterator;
 
 	flat_set() = default;
 	explicit flat_set(Compare compare): _compare(std::move(compare)) {}
@@ -689,6 +705,14 @@ public:
 	[[nodiscard]] const_iterator cbegin() const noexcept { return begin(); }
 	[[nodiscard]] const_iterator end() const noexcept { assert_not_batching(); return _keys.end(); }
 	[[nodiscard]] const_iterator cend() const noexcept { return end(); }
+
+	[[nodiscard]] const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
+	[[nodiscard]] const_reverse_iterator crbegin() const noexcept { return rbegin(); }
+	[[nodiscard]] const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
+	[[nodiscard]] const_reverse_iterator crend() const noexcept { return rend(); }
+
+	[[nodiscard]] const_reference front() const noexcept { assert_not_batching(); assert(!empty()); return _keys.front(); }
+	[[nodiscard]] const_reference back() const noexcept { assert_not_batching(); assert(!empty()); return _keys.back(); }
 
 	// Const only: a write through a mutable handle could break the sort order
 	[[nodiscard]] const std::vector<Key>& keys() const noexcept { assert_not_batching(); return _keys; }

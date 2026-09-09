@@ -672,6 +672,97 @@ TEST_CASE("flat_map key and value views are read-only", "[flat-map]")
 	CHECK((flags.values() == std::vector<bool>{ false, true }));
 }
 
+TEST_CASE("flat_map iterates in reverse", "[flat-map]")
+{
+	flat_map<int, std::string> map{ { 3, "three" }, { 1, "one" }, { 2, "two" } };
+
+	static_assert(std::random_access_iterator<decltype(map.rbegin())>);
+	static_assert(std::random_access_iterator<decltype(map.crbegin())>);
+
+	SECTION("entries come out in descending key order")
+	{
+		const std::vector<std::pair<int, std::string>> expected{ { 3, "three" }, { 2, "two" }, { 1, "one" } };
+		CHECK(std::equal(map.rbegin(), map.rend(), expected.begin(), expected.end()));
+	}
+
+	SECTION("the proxy survives the arrow operator")
+	{
+		CHECK(map.rbegin()->first == 3);
+		CHECK(map.rbegin()->second == "three");
+		CHECK(map.rbegin().base() == map.end());
+	}
+
+	SECTION("a mapped value is writable through a reverse iterator")
+	{
+		map.rbegin()->second = "changed";
+		CHECK(map.at(3) == "changed");
+	}
+
+	SECTION("the reverse range spans the whole map")
+	{
+		CHECK((map.rend() - map.rbegin()) == 3);
+		CHECK(map.rbegin()[2].first == 1);
+	}
+
+	SECTION("const and non-const reverse iterators interoperate")
+	{
+		const auto& const_map = map;
+		CHECK(map.crbegin() == const_map.rbegin());
+		CHECK(map.crend() == const_map.rend());
+
+		const flat_map<int, std::string>::const_reverse_iterator converted = map.rbegin();
+		CHECK(converted == map.crbegin());
+	}
+
+	SECTION("an empty map has an empty reverse range")
+	{
+		map.clear();
+		CHECK(map.rbegin() == map.rend());
+		CHECK(map.crbegin() == map.crend());
+	}
+}
+
+TEST_CASE("flat_map exposes the first and last entries", "[flat-map]")
+{
+	flat_map<int, std::string> map{ { 3, "three" }, { 1, "one" }, { 2, "two" } };
+
+	CHECK(map.front().first == 1);
+	CHECK(map.front().second == "one");
+	CHECK(map.back().first == 3);
+	CHECK(map.back().second == "three");
+
+	SECTION("they follow insertion at either end")
+	{
+		map.try_emplace(0, "zero");
+		map.try_emplace(9, "nine");
+		CHECK(map.front().first == 0);
+		CHECK(map.back().first == 9);
+	}
+
+	SECTION("a mapped value is writable through either")
+	{
+		map.front().second = "first";
+		map.back().second = "last";
+		CHECK(map.at(1) == "first");
+		CHECK(map.at(3) == "last");
+	}
+
+	SECTION("a const map hands out const mapped references")
+	{
+		const auto& const_map = map;
+		static_assert(std::is_same_v<decltype(const_map.front().second), const std::string&>);
+		CHECK(const_map.front().second == "one");
+		CHECK(const_map.back().second == "three");
+	}
+
+	SECTION("a single entry is both the first and the last")
+	{
+		const flat_map<int, std::string> single{ { 7, "seven" } };
+		CHECK(single.front().first == 7);
+		CHECK(single.back().first == 7);
+	}
+}
+
 TEST_CASE("flat_set appends strictly ordered unique values without consuming rejected values", "[flat-set]")
 {
 	flat_set<move_only_value> set;
@@ -777,4 +868,38 @@ TEST_CASE("flat_set exposes its keys as a vector", "[flat-set]")
 		set.end_batch();
 		CHECK((set.keys() == std::vector<int>{ 0, 1, 2, 3, 5 }));
 	}
+}
+
+TEST_CASE("flat_set iterates in reverse", "[flat-set]")
+{
+	flat_set<int> set{ 3, 1, 2 };
+
+	const std::vector<int> descending{ 3, 2, 1 };
+	CHECK(std::equal(set.rbegin(), set.rend(), descending.begin(), descending.end()));
+	CHECK(std::equal(set.crbegin(), set.crend(), descending.begin(), descending.end()));
+
+	CHECK(*set.rbegin() == 3);
+	CHECK((set.rend() - set.rbegin()) == 3);
+	CHECK(set.rbegin().base() == set.end());
+
+	set.clear();
+	CHECK(set.rbegin() == set.rend());
+}
+
+TEST_CASE("flat_set exposes the first and last keys", "[flat-set]")
+{
+	flat_set<int> set{ 3, 1, 2 };
+	static_assert(std::is_same_v<decltype(set.front()), const int&>);
+
+	CHECK(set.front() == 1);
+	CHECK(set.back() == 3);
+
+	set.insert(0);
+	set.insert(9);
+	CHECK(set.front() == 0);
+	CHECK(set.back() == 9);
+
+	const flat_set<int> single{ 7 };
+	CHECK(single.front() == 7);
+	CHECK(single.back() == 7);
 }
