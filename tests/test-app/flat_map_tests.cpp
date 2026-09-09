@@ -91,6 +91,21 @@ namespace {
 		int value;
 	};
 
+	struct throwing_value
+	{
+		struct construction_failed {};
+
+		static constexpr int poison = -1;
+
+		explicit throwing_value(int value): value(value)
+		{
+			if (value == poison)
+				throw construction_failed{};
+		}
+
+		int value;
+	};
+
 } // namespace
 
 TEST_CASE("flat_map supports pair-like random-access iteration", "[flat-map]")
@@ -434,6 +449,70 @@ TEST_CASE("flat containers match standard ordered containers through mixed opera
 	expected_set.erase(expected_set.lower_bound(3), expected_set.upper_bound(7));
 	check_map();
 	check_set();
+}
+
+TEST_CASE("flat containers match standard ordered containers through an initial batch", "[flat-map][flat-set]")
+{
+	// A batch opened on an empty container is sorted and deduplicated in place, never merged against a prefix
+	const std::vector<std::pair<int, int>> entries{
+		{ 5, 50 }, { 1, 10 }, { 5, 500 }, { 3, 30 }, { 1, 100 }, { 5, 5000 }, { 2, 20 }
+	};
+
+	flat_map<int, int> map;
+	std::map<int, int> expected_map;
+	flat_set<int> set;
+	std::set<int> expected_set;
+
+	map.begin_batch();
+	set.begin_batch();
+	for (const auto& [key, value] : entries) {
+		map.append_unsorted(key, value);
+		set.append_unsorted(key);
+		expected_map.insert({ key, value });
+		expected_set.insert(key);
+	}
+	map.end_batch();
+	set.end_batch();
+
+	REQUIRE(map.size() == expected_map.size());
+	CHECK(std::equal(map.begin(), map.end(), expected_map.begin(), expected_map.end()));
+	REQUIRE(set.size() == expected_set.size());
+	CHECK(std::equal(set.begin(), set.end(), expected_set.begin(), expected_set.end()));
+}
+
+TEST_CASE("flat_map survives a mapped value that throws while being inserted", "[flat-map]")
+{
+	flat_map<int, throwing_value> map;
+	map.try_emplace(1, 10);
+	map.try_emplace(3, 30);
+
+	SECTION("try_emplace")
+	{
+		CHECK_THROWS_AS(map.try_emplace(2, throwing_value::poison), throwing_value::construction_failed);
+	}
+
+	SECTION("append_sorted_unique")
+	{
+		CHECK_THROWS_AS(map.append_sorted_unique(9, throwing_value::poison), throwing_value::construction_failed);
+	}
+
+	SECTION("append_unsorted")
+	{
+		map.begin_batch();
+		CHECK_THROWS_AS(map.append_unsorted(9, throwing_value::poison), throwing_value::construction_failed);
+		// Checked before end_batch, which would run off the shorter value vector
+		REQUIRE(map.size() == 2);
+		map.end_batch();
+	}
+
+	// size() comes from the key vector, so a key left behind by the failed insertion is reported as an entry with no value
+	REQUIRE(map.size() == 2);
+	CHECK(map.at(1).value == 10);
+	CHECK(map.at(3).value == 30);
+
+	CHECK(map.try_emplace(2, 20).second);
+	CHECK(map.size() == 3);
+	CHECK(map.at(2).value == 20);
 }
 
 TEST_CASE("flat_set appends strictly ordered unique values without consuming rejected values", "[flat-set]")
