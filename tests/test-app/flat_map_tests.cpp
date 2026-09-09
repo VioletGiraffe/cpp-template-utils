@@ -59,6 +59,18 @@ namespace {
 		bool operator()(int left, int right) const { return descending ? left > right : left < right; }
 	};
 
+	// tag is invisible to tagged_less, so equivalent values stay distinguishable
+	struct tagged_value
+	{
+		int key;
+		int tag;
+	};
+
+	struct tagged_less
+	{
+		bool operator()(const tagged_value& left, const tagged_value& right) const { return left.key < right.key; }
+	};
+
 	struct move_only_value
 	{
 		explicit move_only_value(int value): value(value) {}
@@ -420,6 +432,42 @@ TEST_CASE("flat containers match standard ordered containers through mixed opera
 	expected_set.erase(expected_set.lower_bound(3), expected_set.upper_bound(7));
 	check_map();
 	check_set();
+}
+
+TEST_CASE("flat_set batch insertion keeps the first of several equivalent values", "[flat-set]")
+{
+	// Past the insertion-sort threshold: with fewer entries an unstable sort would preserve order by accident
+	constexpr int batchSize = 40;
+
+	SECTION("sorted in place, with no existing entries")
+	{
+		flat_set<tagged_value, tagged_less> set;
+
+		set.begin_batch();
+		for (int tag = 0; tag < batchSize; ++tag)
+			set.append_unsorted(tagged_value{ tag % 2, tag });
+		set.end_batch();
+
+		REQUIRE(set.size() == 2);
+		CHECK(set.begin()->tag == 0);
+		CHECK((set.begin() + 1)->tag == 1);
+	}
+
+	SECTION("merged into existing entries")
+	{
+		flat_set<tagged_value, tagged_less> set;
+		set.insert(tagged_value{ 9, -1 });
+
+		set.begin_batch();
+		for (int tag = 0; tag < batchSize; ++tag)
+			set.append_unsorted(tagged_value{ tag % 2, tag });
+		set.end_batch();
+
+		REQUIRE(set.size() == 3);
+		CHECK(set.begin()->tag == 0);
+		CHECK((set.begin() + 1)->tag == 1);
+		CHECK((set.begin() + 2)->tag == -1);
+	}
 }
 
 TEST_CASE("flat_set supports ordinary, sorted bulk, and batch insertion", "[flat-set]")

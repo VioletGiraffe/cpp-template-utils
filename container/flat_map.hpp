@@ -311,6 +311,7 @@ public:
 	std::pair<iterator, bool> insert(const value_type& value) { return try_emplace(value.first, value.second); }
 	std::pair<iterator, bool> insert(value_type&& value) { return try_emplace(std::move(value.first), std::move(value.second)); }
 
+	// Consumes its arguments only when it inserts: insert_or_assign forwards the same value again after a false result
 	template <typename KeyArgument, typename... MappedArguments>
 	std::pair<iterator, bool> try_emplace(KeyArgument&& key, MappedArguments&&... mapped_arguments)
 	{
@@ -319,8 +320,7 @@ public:
 		if (existing_index != size())
 			return { iterator(this, existing_index), false };
 
-		_keys.insert(_keys.begin() + static_cast<difference_type>(insertion_index), std::forward<KeyArgument>(key));
-		_values.emplace(_values.begin() + static_cast<difference_type>(insertion_index), std::forward<MappedArguments>(mapped_arguments)...);
+		insert_entry(insertion_index, std::forward<KeyArgument>(key), std::forward<MappedArguments>(mapped_arguments)...);
 		return { iterator(this, insertion_index), true };
 	}
 
@@ -390,8 +390,7 @@ public:
 		assert_not_batching();
 		if (!empty() && !_compare(_keys.back(), key))
 			return false;
-		_keys.emplace_back(std::forward<KeyArgument>(key));
-		_values.emplace_back(std::forward<MappedArgument>(value));
+		insert_entry(size(), std::forward<KeyArgument>(key), std::forward<MappedArgument>(value));
 		return true;
 	}
 
@@ -405,8 +404,7 @@ public:
 	void append_unsorted(KeyArgument&& key, MappedArgument&& value)
 	{
 		assert(batch_open());
-		_keys.emplace_back(std::forward<KeyArgument>(key));
-		_values.emplace_back(std::forward<MappedArgument>(value));
+		insert_entry(size(), std::forward<KeyArgument>(key), std::forward<MappedArgument>(value));
 	}
 
 	void append_unsorted(const value_type& value) { append_unsorted(value.first, value.second); }
@@ -445,6 +443,19 @@ private:
 	static constexpr size_type no_batch = std::numeric_limits<size_type>::max();
 
 	void assert_not_batching() const { assert(!batch_open()); }
+
+	// The two vectors are indexed in lockstep, so a throw from either must leave neither longer than the other
+	template <typename KeyArgument, typename... MappedArguments>
+	void insert_entry(size_type index, KeyArgument&& key, MappedArguments&&... mapped_arguments)
+	{
+		_keys.emplace(_keys.begin() + static_cast<difference_type>(index), std::forward<KeyArgument>(key));
+		try {
+			_values.emplace(_values.begin() + static_cast<difference_type>(index), std::forward<MappedArguments>(mapped_arguments)...);
+		} catch (...) {
+			_keys.erase(_keys.begin() + static_cast<difference_type>(index));
+			throw;
+		}
+	}
 
 	template <typename Query>
 	[[nodiscard]] size_type lower_bound_index(const Query& key) const
@@ -741,7 +752,8 @@ public:
 		assert(batch_open());
 		const auto batch_start = _batch_start;
 		_batch_start = no_batch;
-		std::sort(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end(), _compare);
+		// Stable, so the earliest of several equivalent appended keys is the one deduplication keeps
+		std::stable_sort(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end(), _compare);
 		if (batch_start == 0) {
 			_keys.erase(std::unique(_keys.begin(), _keys.end(),
 				[this](const Key& left, const Key& right) { return FlatContainerInternal::sorted_keys_equal(left, right, _compare); }), _keys.end());
