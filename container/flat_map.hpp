@@ -734,6 +734,16 @@ public:
 		merge_sorted(std::move(incoming_keys));
 	}
 
+	template <typename KeyArgument>
+	[[nodiscard]] bool append_sorted_unique(KeyArgument&& key)
+	{
+		assert_not_batching();
+		if (!empty() && !_compare(_keys.back(), key))
+			return false;
+		_keys.emplace_back(std::forward<KeyArgument>(key));
+		return true;
+	}
+
 	void begin_batch()
 	{
 		assert_not_batching();

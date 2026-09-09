@@ -86,6 +86,8 @@ namespace {
 			return *this;
 		}
 
+		friend bool operator<(const move_only_value& left, const move_only_value& right) { return left.value < right.value; }
+
 		int value;
 	};
 
@@ -432,6 +434,26 @@ TEST_CASE("flat containers match standard ordered containers through mixed opera
 	expected_set.erase(expected_set.lower_bound(3), expected_set.upper_bound(7));
 	check_map();
 	check_set();
+}
+
+TEST_CASE("flat_set appends strictly ordered unique values without consuming rejected values", "[flat-set]")
+{
+	flat_set<move_only_value> set;
+	set.reserve(3);
+	CHECK(set.append_sorted_unique(move_only_value(10)));
+	CHECK(set.append_sorted_unique(move_only_value(30)));
+
+	move_only_value duplicate(30);
+	CHECK_FALSE(set.append_sorted_unique(std::move(duplicate)));
+	CHECK(duplicate.value == 30);
+
+	move_only_value outOfOrder(20);
+	CHECK_FALSE(set.append_sorted_unique(std::move(outOfOrder)));
+	CHECK(outOfOrder.value == 20);
+
+	REQUIRE(set.size() == 2);
+	CHECK(set.begin()->value == 10);
+	CHECK((set.begin() + 1)->value == 30);
 }
 
 TEST_CASE("flat_set batch insertion keeps the first of several equivalent values", "[flat-set]")
