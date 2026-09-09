@@ -160,7 +160,8 @@ private:
 		template <bool OtherConst>
 		[[nodiscard]] bool operator==(const basic_iterator<OtherConst>& other) const noexcept
 		{
-			return _container == other._container && _index == other._index;
+			assert(_container == other._container);
+			return _index == other._index;
 		}
 
 		template <bool OtherConst>
