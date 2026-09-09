@@ -39,6 +39,7 @@ INCLUDEPATH += $${PWD}/../../
 
 # ../CMakeLists.txt builds the same list and must be updated alongside this one
 SOURCES += \
+	main.cpp \
 	math_tests.cpp \
 	chunked_deque_tests.cpp \
 	chunked_deque_benchmarks.cpp \

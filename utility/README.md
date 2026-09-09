@@ -1,6 +1,6 @@
 # General utilities
 
-Compile-time, representation, lifetime, and preprocessor helpers that do not belong to a narrower module.
+Compile-time, representation, lifetime, runtime, and preprocessor helpers that do not belong to a narrower module.
 
 | Header | Facility |
 |---|---|
@@ -9,6 +9,7 @@ Compile-time, representation, lifetime, and preprocessor helpers that do not bel
 | `constexpr_algorithms.hpp` | `consteval_for`, fold-based `constexpr_for_fold`/`static_for`, and dispatch from a bounded runtime value to a non-type template argument. |
 | `extra_type_traits.hpp` | Traits for trivial byte serialization, cv/ref removal, specialization detection, member-pointer value type, equality comparability, and random-access sortable containers. |
 | `integer_literals.hpp` | `_u64`, `_i64`, `_u16`, `_i16`, and `_z` fixed-type integer literal suffixes. |
+| `interactive_diagnostics.hpp` | `disableInteractiveDiagnostics()` sends MSVC assertion failures and aborts to stderr rather than a modal dialog, which an unattended run would hang on. Empty elsewhere. |
 | `macro_utils.h` | Expansion-aware two/three-token concatenation and stringification macros. |
 | `memory_cast.hpp` | `memory_cast` reinterprets a trivially serializable value, constant-evaluable via `std::bit_cast`, or reads one out of caller-supplied memory; `zero_object` clears an object's raw representation. |
 | `named_type_wrapper.hpp` | `NamedType<T, Tag>` distinguishes otherwise identical trivial values while retaining implicit conversion to `T`; macros generate line-unique named types. |

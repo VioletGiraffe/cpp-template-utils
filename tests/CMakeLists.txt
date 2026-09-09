@@ -9,6 +9,7 @@ set(TARGET_NAME tests)
 # Listed in the order of SOURCES in test-app/cpp-template-utils-test-app.pro, which must hold the same files.
 # test-app/tracking_allocator.cpp is in neither list: work in progress, deliberately not built.
 add_executable(${TARGET_NAME}
+	test-app/main.cpp
 	test-app/math_tests.cpp
 	test-app/chunked_deque_tests.cpp
 	test-app/chunked_deque_benchmarks.cpp
