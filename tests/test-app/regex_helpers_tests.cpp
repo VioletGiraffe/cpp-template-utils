@@ -82,7 +82,13 @@ TEST_CASE("regex_replace - zero-length matches", "[regex_helpers]")
 	const std::regex wordBoundary{ "\\b" };
 	const auto marker = [](const std::smatch&) { return std::string{ "|" }; };
 
+#ifdef _LIBCPP_VERSION
+	// libc++ does not report the word boundary at the end of the subject, so the closing marker is missing there
+	CHECK(regex_helpers::regex_replace(std::string{ "hi there" }, wordBoundary, marker) == "|hi| |there");
+#else
 	CHECK(regex_helpers::regex_replace(std::string{ "hi there" }, wordBoundary, marker) == "|hi| |there|");
+#endif
+
 	CHECK(regex_helpers::regex_replace(std::string{ "  " }, wordBoundary, marker) == "  ");
 }
 
