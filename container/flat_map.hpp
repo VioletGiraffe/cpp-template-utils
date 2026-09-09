@@ -647,10 +647,26 @@ private:
 	}
 
 	// Never touches _batch_start: end_batch() owns that transition, including restoring it when this throws
+	// True when sorting the appended tail on its own leaves the whole container ordered and collision-free
+	// An empty prefix qualifies trivially: there is nothing in front for the tail to collide with
+	[[nodiscard]] bool tail_sorts_after_prefix(size_type batch_start) const
+	{
+		if (batch_start == 0)
+			return true;
+
+		const Key& last_existing = _keys[batch_start - 1];
+		return std::all_of(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end(),
+			[&](const Key& key) { return _compare(last_existing, key); });
+	}
+
 	void merge_appended_tail(size_type batch_start)
 	{
-		if (batch_start == 0) {
-			sort_and_deduplicate();
+		if (batch_start == size()) // Nothing was appended, so there is no tail to place
+			return;
+
+		// Sorting the tail where it already lies is the whole job: nothing before it moves, and no temporaries are built
+		if (tail_sorts_after_prefix(batch_start)) {
+			sort_and_deduplicate(batch_start);
 			return;
 		}
 
@@ -679,11 +695,24 @@ private:
 		if (incoming_keys.empty())
 			return;
 		if (empty()) {
-			const auto unique_size = deduplicate_sorted(incoming_keys, incoming_values);
-			incoming_keys.erase(incoming_keys.begin() + static_cast<difference_type>(unique_size), incoming_keys.end());
-			incoming_values.erase(incoming_values.begin() + static_cast<difference_type>(unique_size), incoming_values.end());
+			deduplicate_sorted(incoming_keys, incoming_values);
 			_keys = std::move(incoming_keys);
 			_values = std::move(incoming_values);
+			return;
+		}
+
+		// Everything incoming sorts past the last existing key, so no existing entry moves and none can collide
+		// Deduplication runs after the test: it never changes front(), and the merge path below deduplicates as it goes
+		if (_compare(_keys.back(), incoming_keys.front())) {
+			deduplicate_sorted(incoming_keys, incoming_values);
+			const auto original_size = size();
+			_keys.insert(_keys.end(), std::make_move_iterator(incoming_keys.begin()), std::make_move_iterator(incoming_keys.end()));
+			try {
+				_values.insert(_values.end(), std::make_move_iterator(incoming_values.begin()), std::make_move_iterator(incoming_values.end()));
+			} catch (...) {
+				_keys.erase(_keys.begin() + static_cast<difference_type>(original_size), _keys.end());
+				throw;
+			}
 			return;
 		}
 
@@ -736,12 +765,13 @@ private:
 		_values = std::move(merged_values);
 	}
 
-	[[nodiscard]] size_type deduplicate_sorted(std::vector<Key>& keys, std::vector<Mapped>& values) const
+	// Keeps the first of each group of equivalent keys, considering only [from, size())
+	void deduplicate_sorted(std::vector<Key>& keys, std::vector<Mapped>& values, size_type from = 0) const
 	{
 		assert(keys.size() == values.size());
-		auto unique_size = size_type{ 0 };
-		for (size_type index = 0; index < keys.size(); ++index) {
-			if (unique_size != 0 && FlatContainerInternal::sorted_keys_equal(keys[unique_size - 1], keys[index], _compare))
+		auto unique_size = from;
+		for (size_type index = from; index < keys.size(); ++index) {
+			if (unique_size != from && FlatContainerInternal::sorted_keys_equal(keys[unique_size - 1], keys[index], _compare))
 				continue;
 			if (unique_size != index) {
 				keys[unique_size] = std::move(keys[index]);
@@ -749,7 +779,8 @@ private:
 			}
 			++unique_size;
 		}
-		return unique_size;
+		keys.erase(keys.begin() + static_cast<difference_type>(unique_size), keys.end());
+		values.erase(values.begin() + static_cast<difference_type>(unique_size), values.end());
 	}
 
 	// Ties break on the original index: deduplication then keeps the earliest of equivalent appended keys
@@ -768,37 +799,38 @@ private:
 		});
 	}
 
-	void sort_and_deduplicate()
+	// Sorts and deduplicates [from, size()) in place, leaving anything before it untouched
+	// Requires every key at or after from to be greater than the one before it, so no duplicate straddles the boundary
+	// order is indexed relative to from but stores absolute indices: order[j] names the element belonging at from + j
+	void sort_and_deduplicate(size_type from)
 	{
-		std::vector<size_type> order(size());
+		std::vector<size_type> order(size() - from);
 		for (size_type index = 0; index < order.size(); ++index)
-			order[index] = index;
+			order[index] = from + index;
 		sort_indices_by_key(order);
 
 		for (size_type start = 0; start < order.size(); ++start) {
-			if (order[start] == start)
+			if (order[start] == from + start)
 				continue;
 
-			Key key = std::move(_keys[start]);
-			Mapped value = std::move(_values[start]);
+			Key key = std::move(_keys[from + start]);
+			Mapped value = std::move(_values[from + start]);
 			auto destination = start;
 			for (;;) {
 				const auto source = order[destination];
-				order[destination] = destination;
-				if (source == start) {
-					_keys[destination] = std::move(key);
-					_values[destination] = std::move(value);
+				order[destination] = from + destination;
+				if (source == from + start) {
+					_keys[from + destination] = std::move(key);
+					_values[from + destination] = std::move(value);
 					break;
 				}
-				_keys[destination] = std::move(_keys[source]);
-				_values[destination] = std::move(_values[source]);
-				destination = source;
+				_keys[from + destination] = std::move(_keys[source]);
+				_values[from + destination] = std::move(_values[source]);
+				destination = source - from;
 			}
 		}
 
-		const auto unique_size = deduplicate_sorted(_keys, _values);
-		_keys.erase(_keys.begin() + static_cast<difference_type>(unique_size), _keys.end());
-		_values.erase(_values.begin() + static_cast<difference_type>(unique_size), _values.end());
+		deduplicate_sorted(_keys, _values, from);
 	}
 
 	std::vector<Key> _keys;
@@ -1110,14 +1142,26 @@ private:
 		return { index, index };
 	}
 
+	// Keeps the first of each group of equivalent keys, considering only [from, size())
+	void deduplicate_sorted(std::vector<Key>& keys, size_type from = 0) const
+	{
+		keys.erase(std::unique(keys.begin() + static_cast<difference_type>(from), keys.end(),
+			[this](const Key& left, const Key& right) { return FlatContainerInternal::sorted_keys_equal(left, right, _compare); }), keys.end());
+	}
+
 	// Never touches _batch_start: end_batch() owns that transition, including restoring it when this throws
 	void merge_appended_tail(size_type batch_start)
 	{
+		if (batch_start == size()) // Nothing was appended, so there is no tail to place
+			return;
+
 		// Stable: deduplication then keeps the earliest of several equivalent appended keys
 		std::stable_sort(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end(), _compare);
-		if (batch_start == 0) {
-			_keys.erase(std::unique(_keys.begin(), _keys.end(),
-				[this](const Key& left, const Key& right) { return FlatContainerInternal::sorted_keys_equal(left, right, _compare); }), _keys.end());
+
+		// The tail is sorted by now, so its smallest key sits at batch_start and one comparison settles the whole question
+		// Deduplicating it where it lies is then the whole job: nothing before it moves, and no temporary is built
+		if (batch_start == 0 || _compare(_keys[batch_start - 1], _keys[batch_start])) {
+			deduplicate_sorted(_keys, batch_start);
 			return;
 		}
 
@@ -1131,9 +1175,16 @@ private:
 		if (incoming_keys.empty())
 			return;
 		if (empty()) {
-			incoming_keys.erase(std::unique(incoming_keys.begin(), incoming_keys.end(),
-				[this](const Key& left, const Key& right) { return FlatContainerInternal::sorted_keys_equal(left, right, _compare); }), incoming_keys.end());
+			deduplicate_sorted(incoming_keys);
 			_keys = std::move(incoming_keys);
+			return;
+		}
+
+		// Everything incoming sorts past the last existing key, so no existing entry moves and none can collide
+		// Deduplication runs after the test: it never changes front(), and the merge path below deduplicates as it goes
+		if (_compare(_keys.back(), incoming_keys.front())) {
+			deduplicate_sorted(incoming_keys);
+			_keys.insert(_keys.end(), std::make_move_iterator(incoming_keys.begin()), std::make_move_iterator(incoming_keys.end()));
 			return;
 		}
 

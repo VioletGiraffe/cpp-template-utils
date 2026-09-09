@@ -115,6 +115,23 @@ namespace {
 		bool operator()(const throwing_value& left, const throwing_value& right) const { return left.value < right.value; }
 	};
 
+	// Counts relocations, so a test can tell placing a batch in situ from one that materializes temporaries
+	struct counted_move
+	{
+		static inline int moves = 0;
+
+		explicit counted_move(int value): value(value) {}
+		counted_move(const counted_move&) = delete;
+		counted_move& operator=(const counted_move&) = delete;
+
+		counted_move(counted_move&& other) noexcept: value(other.value) { ++moves; }
+		counted_move& operator=(counted_move&& other) noexcept { value = other.value; ++moves; return *this; }
+
+		friend bool operator<(const counted_move& left, const counted_move& right) { return left.value < right.value; }
+
+		int value;
+	};
+
 	struct comparison_failed {};
 
 	// The comparator is the throw site reachable from inside end_batch(), so arming it fails the merge itself
@@ -1170,6 +1187,20 @@ TEST_CASE("flat containers handle degenerate batches", "[flat-map][flat-set]")
 		CHECK((map.values() == std::vector<int>{ 10, 20, 100, 200 }));
 	}
 
+	SECTION("a batch opened on a non-empty container and closed without appending")
+	{
+		flat_map<int, int> map{ { 1, 10 }, { 2, 20 } };
+		map.begin_batch();
+		map.end_batch();
+		CHECK((map.keys() == std::vector<int>{ 1, 2 }));
+		CHECK((map.values() == std::vector<int>{ 10, 20 }));
+
+		flat_set<int> set{ 1, 2 };
+		set.begin_batch();
+		set.end_batch();
+		CHECK((set.keys() == std::vector<int>{ 1, 2 }));
+	}
+
 	SECTION("two batches in sequence")
 	{
 		flat_set<int> set{ 5 };
@@ -1640,5 +1671,122 @@ TEST_CASE("flat containers deduce their template arguments", "[flat-map][flat-se
 		flat_map descending_map(entries.begin(), entries.end(), directional_less{ true });
 		static_assert(std::same_as<decltype(descending_map), flat_map<int, std::string, directional_less>>);
 		CHECK((descending_map.keys() == std::vector<int>{ 2, 1 }));
+	}
+}
+
+TEST_CASE("a sorted range past the end is appended without a merge", "[flat-map][flat-set]")
+{
+	SECTION("the existing keys are never compared against")
+	{
+		flat_map<counted_key, int, counted_less> map;
+		std::vector<std::pair<counted_key, int>> initial;
+		for (int value = 0; value < 100; ++value)
+			initial.emplace_back(counted_key{ value }, value);
+		map.insert_sorted(initial.begin(), initial.end());
+
+		const std::vector<std::pair<counted_key, int>> appended{ { counted_key{ 100 }, 100 }, { counted_key{ 101 }, 101 } };
+		counted_less::calls = 0;
+		map.insert_sorted(appended.begin(), appended.end());
+
+		// A merge walks all 100 existing keys; the append path only tests the boundary
+		CHECK(counted_less::calls < 10);
+		CHECK(map.size() == 102);
+		CHECK(map.at(counted_key{ 101 }) == 101);
+	}
+
+	SECTION("a key equal to the last existing one still merges, and the existing entry wins")
+	{
+		flat_map<int, std::string> map{ { 1, "one" }, { 2, "existing" } };
+		const std::vector<std::pair<int, std::string>> incoming{ { 2, "replacement" }, { 3, "three" } };
+		map.insert_sorted(incoming.begin(), incoming.end());
+
+		CHECK((map.keys() == std::vector<int>{ 1, 2, 3 }));
+		CHECK((map.values() == std::vector<std::string>{ "one", "existing", "three" }));
+	}
+
+	SECTION("duplicates inside the appended range collapse to the first")
+	{
+		flat_map<int, std::string> map{ { 1, "one" } };
+		const std::vector<std::pair<int, std::string>> incoming{ { 2, "first two" }, { 2, "second two" }, { 3, "three" } };
+		map.insert_sorted(incoming.begin(), incoming.end());
+
+		CHECK((map.keys() == std::vector<int>{ 1, 2, 3 }));
+		CHECK((map.values() == std::vector<std::string>{ "one", "first two", "three" }));
+	}
+
+	SECTION("the batch protocol reaches the same path")
+	{
+		flat_map<int, std::string> map{ { 1, "one" }, { 2, "two" } };
+		map.begin_batch();
+		map.append_unsorted(4, "four");
+		map.append_unsorted(3, "three");
+		map.append_unsorted(4, "second four");
+		map.end_batch();
+
+		CHECK((map.keys() == std::vector<int>{ 1, 2, 3, 4 }));
+		CHECK((map.values() == std::vector<std::string>{ "one", "two", "three", "four" }));
+	}
+
+	SECTION("insert(first, last) reaches it too, and a partly overlapping range still merges")
+	{
+		flat_map<int, int> map{ { 10, 100 }, { 20, 200 } };
+		map.insert({ { 30, 300 }, { 40, 400 } });
+		CHECK((map.keys() == std::vector<int>{ 10, 20, 30, 40 }));
+
+		map.insert({ { 5, 50 }, { 25, 250 }, { 50, 500 } });
+		CHECK((map.keys() == std::vector<int>{ 5, 10, 20, 25, 30, 40, 50 }));
+		CHECK((map.values() == std::vector<int>{ 50, 100, 200, 250, 300, 400, 500 }));
+	}
+
+	SECTION("flat_set appends the same way")
+	{
+		flat_set<int> set{ 1, 2 };
+		const std::vector<int> appended{ 3, 3, 4 };
+		set.insert_sorted(appended.begin(), appended.end());
+		CHECK((set.keys() == std::vector<int>{ 1, 2, 3, 4 }));
+
+		const std::vector<int> overlapping{ 2, 5 };
+		set.insert_sorted(overlapping.begin(), overlapping.end());
+		CHECK((set.keys() == std::vector<int>{ 1, 2, 3, 4, 5 }));
+
+		set.begin_batch();
+		set.append_unsorted(7);
+		set.append_unsorted(6);
+		set.end_batch();
+		CHECK((set.keys() == std::vector<int>{ 1, 2, 3, 4, 5, 6, 7 }));
+	}
+
+	SECTION("an ascending batch is finalized without relocating anything")
+	{
+		flat_map<int, counted_move> map;
+		for (int key = 0; key < 10; ++key)
+			CHECK(map.append_sorted_unique(key, counted_move(key)));
+
+		map.begin_batch();
+		map.append_unsorted(10, counted_move(10));
+		map.append_unsorted(11, counted_move(11));
+
+		counted_move::moves = 0;
+		map.end_batch();
+
+		// The tail already sits where it belongs and in order: nothing is materialized, permuted or appended back
+		CHECK(counted_move::moves == 0);
+		REQUIRE(map.size() == 12);
+		CHECK(map.at(11).value == 11);
+	}
+
+	SECTION("a move-only mapped value is moved, not copied, along the append path")
+	{
+		flat_map<int, move_only_value> map;
+		CHECK(map.append_sorted_unique(1, move_only_value(10)));
+
+		std::vector<std::pair<int, move_only_value>> incoming;
+		incoming.emplace_back(2, move_only_value(20));
+		incoming.emplace_back(3, move_only_value(30));
+		map.insert(std::make_move_iterator(incoming.begin()), std::make_move_iterator(incoming.end()));
+
+		CHECK((map.keys() == std::vector<int>{ 1, 2, 3 }));
+		CHECK(map.at(2).value == 20);
+		CHECK(map.at(3).value == 30);
 	}
 }
