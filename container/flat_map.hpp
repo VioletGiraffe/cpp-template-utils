@@ -235,13 +235,10 @@ public:
 	flat_map() = default;
 	explicit flat_map(Compare compare): _compare(std::move(compare)) {}
 
-	flat_map(std::initializer_list<value_type> values, Compare compare = {}): _compare(std::move(compare))
-	{
-		begin_batch();
-		for (const auto& [key, value] : values)
-			append_unsorted(key, value);
-		end_batch();
-	}
+	template <typename InputIterator>
+	flat_map(InputIterator first, InputIterator last, Compare compare = {}): _compare(std::move(compare)) { insert(first, last); }
+
+	flat_map(std::initializer_list<value_type> values, Compare compare = {}): _compare(std::move(compare)) { insert(values); }
 
 	[[nodiscard]] bool empty() const noexcept { return _keys.empty(); }
 	[[nodiscard]] size_type size() const noexcept { return _keys.size(); }
@@ -477,6 +474,30 @@ public:
 			return 0;
 		erase(position);
 		return 1;
+	}
+
+	// Compacts both vectors in a single pass: erasing one at a time relocates the tail once per removal
+	// The predicate takes the same const proxy dereferencing an iterator yields, so it can read but not reorder
+	template <typename Predicate>
+	friend size_type erase_if(flat_map& container, Predicate predicate)
+	{
+		container.assert_not_batching();
+
+		const auto original_size = container.size();
+		auto kept = size_type{ 0 };
+		for (size_type index = 0; index < original_size; ++index) {
+			if (predicate(const_reference{ container._keys[index], container._values[index] }))
+				continue;
+			if (kept != index) {
+				container._keys[kept] = std::move(container._keys[index]);
+				container._values[kept] = std::move(container._values[index]);
+			}
+			++kept;
+		}
+
+		container._keys.erase(container._keys.begin() + static_cast<difference_type>(kept), container._keys.end());
+		container._values.erase(container._values.begin() + static_cast<difference_type>(kept), container._values.end());
+		return original_size - kept;
 	}
 
 	template <typename InputIterator>
@@ -799,13 +820,10 @@ public:
 	flat_set() = default;
 	explicit flat_set(Compare compare): _compare(std::move(compare)) {}
 
-	flat_set(std::initializer_list<Key> values, Compare compare = {}): _compare(std::move(compare))
-	{
-		begin_batch();
-		for (const auto& value : values)
-			append_unsorted(value);
-		end_batch();
-	}
+	template <typename InputIterator>
+	flat_set(InputIterator first, InputIterator last, Compare compare = {}): _compare(std::move(compare)) { insert(first, last); }
+
+	flat_set(std::initializer_list<Key> values, Compare compare = {}): _compare(std::move(compare)) { insert(values); }
 
 	[[nodiscard]] bool empty() const noexcept { return _keys.empty(); }
 	[[nodiscard]] size_type size() const noexcept { return _keys.size(); }
@@ -942,6 +960,27 @@ public:
 			return 0;
 		erase(position);
 		return 1;
+	}
+
+	// Compacts the vector in a single pass: erasing one at a time relocates the tail once per removal
+	// The predicate takes a const key, so it can read but not reorder
+	template <typename Predicate>
+	friend size_type erase_if(flat_set& container, Predicate predicate)
+	{
+		container.assert_not_batching();
+
+		const auto original_size = container.size();
+		auto kept = size_type{ 0 };
+		for (size_type index = 0; index < original_size; ++index) {
+			if (predicate(std::as_const(container._keys[index])))
+				continue;
+			if (kept != index)
+				container._keys[kept] = std::move(container._keys[index]);
+			++kept;
+		}
+
+		container._keys.erase(container._keys.begin() + static_cast<difference_type>(kept), container._keys.end());
+		return original_size - kept;
 	}
 
 	template <typename InputIterator>

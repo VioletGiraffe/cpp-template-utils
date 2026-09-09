@@ -20,7 +20,7 @@ Algorithms, adapters, and containers for STL-compatible code.
 
 ## Flat associative containers
 
-`flat_map` stores keys and mapped values in separate vectors and exposes pair-like proxy iterators with `first`/`second` and `key()`/`value()` access. Map dereference returns its proxy by value: `auto entry` and `const auto& entry` work in range loops, but `auto& entry` does not. Keys remain immutable, so read-only standard algorithms and construction of ordinary pair containers work while algorithms that reorder entries are intentionally ill-formed.
+`flat_map` stores keys and mapped values in separate vectors and exposes pair-like proxy iterators with `first`/`second` and `key()`/`value()` access. Map dereference returns its proxy by value: `auto entry` and `const auto& entry` work in range loops, but `auto& entry` does not. Keys remain immutable, so read-only standard algorithms and construction of ordinary pair containers work while algorithms that reorder entries are intentionally ill-formed. `erase_if(container, predicate)` compacts in one pass; it is a container operation because that same immutability rules out the remove/erase idiom.
 
 `keys()` returns the backing key vector as a const reference, and `flat_map::values()` the mapped vector, indexed in lockstep with it and with iteration. Both are const: a write through a mutable handle would break the sort order, or desynchronize the map's two vectors.
 

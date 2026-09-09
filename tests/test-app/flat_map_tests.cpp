@@ -1497,3 +1497,94 @@ TEST_CASE("comparison operators stay out of the way of comparator-only keys", "[
 	CHECK(map.size() == 2);
 	CHECK(map.find(ordered_only_key{ 1 })->second == 10);
 }
+
+TEST_CASE("flat containers construct from a range", "[flat-map][flat-set]")
+{
+	const std::vector<std::pair<int, std::string>> entries{ { 3, "three" }, { 1, "one" }, { 2, "two" }, { 1, "duplicate" } };
+	const flat_map<int, std::string> map(entries.begin(), entries.end());
+	CHECK((map.keys() == std::vector<int>{ 1, 2, 3 }));
+	CHECK((map.values() == std::vector<std::string>{ "one", "two", "three" }));
+
+	const std::vector<int> keys{ 3, 1, 2, 1 };
+	const flat_set<int> set(keys.begin(), keys.end());
+	CHECK((set.keys() == std::vector<int>{ 1, 2, 3 }));
+
+	SECTION("an empty range yields an empty container")
+	{
+		const std::vector<std::pair<int, std::string>> empty;
+		const flat_map<int, std::string> empty_map(empty.begin(), empty.end());
+		CHECK(empty_map.empty());
+	}
+
+	SECTION("a comparator can be supplied alongside the range")
+	{
+		const std::vector<std::pair<int, int>> pairs{ { 1, 10 }, { 2, 20 } };
+		const flat_map<int, int, directional_less> descending(pairs.begin(), pairs.end(), directional_less{ true });
+		CHECK((descending.keys() == std::vector<int>{ 2, 1 }));
+
+		const flat_set<int, directional_less> descending_set(keys.begin(), keys.end(), directional_less{ true });
+		CHECK((descending_set.keys() == std::vector<int>{ 3, 2, 1 }));
+	}
+
+	SECTION("an input iterator range works")
+	{
+		std::istringstream numbers{ "4 1 3 1" };
+		const flat_set<int> from_stream{ std::istream_iterator<int>(numbers), std::istream_iterator<int>() };
+		CHECK((from_stream.keys() == std::vector<int>{ 1, 3, 4 }));
+	}
+}
+
+TEST_CASE("flat containers erase by predicate", "[flat-map][flat-set]")
+{
+	flat_map<int, std::string> map{ { 1, "one" }, { 2, "two" }, { 3, "three" }, { 4, "four" }, { 5, "five" } };
+
+	SECTION("matching entries go, the rest keep their order")
+	{
+		CHECK(erase_if(map, [](const auto& entry) { return entry.first % 2 == 0; }) == 2);
+		CHECK((map.keys() == std::vector<int>{ 1, 3, 5 }));
+		CHECK((map.values() == std::vector<std::string>{ "one", "three", "five" }));
+	}
+
+	SECTION("the mapped value is readable from the predicate")
+	{
+		// "three", "four" and "five" go; "one" and "two" are exactly three characters
+		CHECK(erase_if(map, [](const auto& entry) { return entry.second.size() > 3; }) == 3);
+		CHECK((map.keys() == std::vector<int>{ 1, 2 }));
+	}
+
+	SECTION("erasing everything and erasing nothing")
+	{
+		CHECK(erase_if(map, [](const auto&) { return false; }) == 0);
+		CHECK(map.size() == 5);
+		CHECK(erase_if(map, [](const auto&) { return true; }) == 5);
+		CHECK(map.empty());
+		CHECK(erase_if(map, [](const auto&) { return true; }) == 0);
+	}
+
+	SECTION("the first and the last entry are erasable")
+	{
+		CHECK(erase_if(map, [](const auto& entry) { return entry.first == 1 || entry.first == 5; }) == 2);
+		CHECK((map.keys() == std::vector<int>{ 2, 3, 4 }));
+	}
+
+	SECTION("flat_set erases by predicate too")
+	{
+		flat_set<int> set{ 1, 2, 3, 4, 5 };
+		CHECK(erase_if(set, [](int key) { return key > 3; }) == 2);
+		CHECK((set.keys() == std::vector<int>{ 1, 2, 3 }));
+		CHECK(erase_if(set, [](int) { return false; }) == 0);
+	}
+
+	SECTION("a move-only mapped value survives the compaction")
+	{
+		flat_map<int, move_only_value> movable;
+		for (int key = 1; key <= 5; ++key)
+			CHECK(movable.append_sorted_unique(key, move_only_value(key * 10)));
+
+		CHECK(erase_if(movable, [](const auto& entry) { return entry.first % 2 == 0; }) == 2);
+		CHECK((movable.keys() == std::vector<int>{ 1, 3, 5 }));
+		CHECK(movable.at(1).value == 10);
+		CHECK(movable.at(3).value == 30);
+		CHECK(movable.at(5).value == 50);
+	}
+}
