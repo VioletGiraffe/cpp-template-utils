@@ -236,6 +236,7 @@ public:
 	[[nodiscard]] const_iterator end() const noexcept { assert_not_batching(); return const_iterator(this, size()); }
 	[[nodiscard]] const_iterator cend() const noexcept { return end(); }
 
+	// Ends an open batch as well
 	void clear() noexcept
 	{
 		_keys.clear();
@@ -395,6 +396,9 @@ public:
 		return true;
 	}
 
+	// Ordered operations and iteration are invalid until the batch ends: only the prefix before it stays sorted
+	// Three ways out: end_batch() merges the appended tail, abort_batch() discards it, clear() discards everything
+	// A batch left open silently breaks lookups wherever the asserts are compiled out: the appended keys are unsorted
 	void begin_batch()
 	{
 		assert_not_batching();
@@ -411,6 +415,7 @@ public:
 	void append_unsorted(const value_type& value) { append_unsorted(value.first, value.second); }
 	void append_unsorted(value_type&& value) { append_unsorted(std::move(value.first), std::move(value.second)); }
 
+	// Existing entries win a key collision with the appended tail
 	void end_batch()
 	{
 		assert(batch_open());
@@ -438,6 +443,16 @@ public:
 		_keys.erase(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end());
 		_values.erase(_values.begin() + static_cast<difference_type>(batch_start), _values.end());
 		merge_sorted(std::move(incoming_keys), std::move(incoming_values));
+	}
+
+	// Restores exactly what begin_batch() saw: the appended tail is erased, everything older is kept
+	// The way out when an append throws or the caller gives up: end_batch() would commit the partial batch
+	void abort_batch()
+	{
+		assert(batch_open());
+		_keys.erase(_keys.begin() + static_cast<difference_type>(_batch_start), _keys.end());
+		_values.erase(_values.begin() + static_cast<difference_type>(_batch_start), _values.end());
+		_batch_start = no_batch;
 	}
 
 private:
@@ -570,6 +585,7 @@ private:
 		return unique_size;
 	}
 
+	// Ties break on the original index: deduplication then keeps the earliest of equivalent appended keys
 	void sort_indices_by_key(std::vector<size_type>& indices) const
 	{
 		std::sort(indices.begin(), indices.end(), [this](size_type left, size_type right) {
@@ -669,6 +685,7 @@ public:
 	[[nodiscard]] const_iterator end() const noexcept { assert_not_batching(); return _keys.end(); }
 	[[nodiscard]] const_iterator cend() const noexcept { return end(); }
 
+	// Ends an open batch as well
 	void clear() noexcept { _keys.clear(); _batch_start = no_batch; }
 	void reserve(size_type count) { _keys.reserve(count); }
 	void shrink_to_fit() { assert_not_batching(); _keys.shrink_to_fit(); }
@@ -745,6 +762,9 @@ public:
 		return true;
 	}
 
+	// Ordered operations and iteration are invalid until the batch ends: only the prefix before it stays sorted
+	// Three ways out: end_batch() merges the appended tail, abort_batch() discards it, clear() discards everything
+	// A batch left open silently breaks lookups wherever the asserts are compiled out: the appended keys are unsorted
 	void begin_batch()
 	{
 		assert_not_batching();
@@ -758,12 +778,13 @@ public:
 		_keys.emplace_back(std::forward<KeyArgument>(key));
 	}
 
+	// Existing entries win a key collision with the appended tail
 	void end_batch()
 	{
 		assert(batch_open());
 		const auto batch_start = _batch_start;
 		_batch_start = no_batch;
-		// Stable, so the earliest of several equivalent appended keys is the one deduplication keeps
+		// Stable: deduplication then keeps the earliest of several equivalent appended keys
 		std::stable_sort(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end(), _compare);
 		if (batch_start == 0) {
 			_keys.erase(std::unique(_keys.begin(), _keys.end(),
@@ -774,6 +795,15 @@ public:
 		std::vector<Key> incoming_keys(std::make_move_iterator(_keys.begin() + static_cast<difference_type>(batch_start)), std::make_move_iterator(_keys.end()));
 		_keys.erase(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end());
 		merge_sorted(std::move(incoming_keys));
+	}
+
+	// Restores exactly what begin_batch() saw: the appended tail is erased, everything older is kept
+	// The way out when an append throws or the caller gives up: end_batch() would commit the partial batch
+	void abort_batch()
+	{
+		assert(batch_open());
+		_keys.erase(_keys.begin() + static_cast<difference_type>(_batch_start), _keys.end());
+		_batch_start = no_batch;
 	}
 
 private:

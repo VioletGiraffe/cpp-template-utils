@@ -22,7 +22,7 @@ Algorithms, adapters, and containers for STL-compatible code.
 
 `flat_map` stores keys and mapped values in separate vectors and exposes pair-like proxy iterators with `first`/`second` and `key()`/`value()` access. Map dereference returns its proxy by value: `auto entry` and `const auto& entry` work in range loops, but `auto& entry` does not. Keys remain immutable, so read-only standard algorithms and construction of ordinary pair containers work while algorithms that reorder entries are intentionally ill-formed.
 
-Both flat containers support ordinary insertion, merging a sorted range, `append_sorted_unique()`, and batched unsorted appends. Between `begin_batch()` and `end_batch()`, ordered operations and iteration are invalid. Finalization sorts only the appended tail and merges it with the existing prefix. Existing entries win conflicts with a batch, and the first batch entry wins duplicates within that batch.
+Both flat containers support ordinary insertion, merging a sorted range, `append_sorted_unique()`, and batched unsorted appends. Between `begin_batch()` and `end_batch()`, ordered operations and iteration are invalid. Finalization sorts only the appended tail and merges it with the existing prefix. Existing entries win conflicts with a batch, and the first batch entry wins duplicates within that batch. `abort_batch()` instead discards the appended tail and restores the state from before `begin_batch()`; `clear()` ends an open batch by discarding the container.
 
 Key equality uses `operator==` when the compared types provide it and comparator equivalence otherwise. When both are available, they must describe the same equivalence relation.
 

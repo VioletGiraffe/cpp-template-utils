@@ -515,6 +515,85 @@ TEST_CASE("flat_map survives a mapped value that throws while being inserted", "
 	CHECK(map.at(2).value == 20);
 }
 
+TEST_CASE("aborting a batch restores the state from before begin_batch", "[flat-map][flat-set]")
+{
+	flat_map<int, int> map{ { 1, 10 }, { 3, 30 } };
+	flat_set<int> set{ 1, 3 };
+
+	SECTION("appended entries are discarded")
+	{
+		map.begin_batch();
+		map.append_unsorted(2, 20);
+		map.append_unsorted(1, 100);
+		map.abort_batch();
+
+		set.begin_batch();
+		set.append_unsorted(2);
+		set.append_unsorted(1);
+		set.abort_batch();
+	}
+
+	SECTION("an empty batch leaves everything in place")
+	{
+		map.begin_batch();
+		map.abort_batch();
+
+		set.begin_batch();
+		set.abort_batch();
+	}
+
+	CHECK_FALSE(map.batch_open());
+	CHECK_FALSE(set.batch_open());
+
+	const std::vector<std::pair<int, int>> expected_map{ { 1, 10 }, { 3, 30 } };
+	CHECK(std::equal(map.begin(), map.end(), expected_map.begin(), expected_map.end()));
+	const std::vector<int> expected_set{ 1, 3 };
+	CHECK(std::equal(set.begin(), set.end(), expected_set.begin(), expected_set.end()));
+
+	// Ordered operations are valid again, and the containers take further entries normally
+	CHECK(map.find(3) != map.end());
+	CHECK(map.try_emplace(2, 20).second);
+	CHECK(map.size() == 3);
+	CHECK(set.insert(2).second);
+	CHECK(set.size() == 3);
+}
+
+TEST_CASE("aborting a batch opened on an empty container leaves it empty", "[flat-map][flat-set]")
+{
+	flat_map<int, int> map;
+	map.begin_batch();
+	map.append_unsorted(1, 10);
+	map.abort_batch();
+
+	flat_set<int> set;
+	set.begin_batch();
+	set.append_unsorted(1);
+	set.abort_batch();
+
+	CHECK(map.empty());
+	CHECK(set.empty());
+	CHECK(map.begin() == map.end());
+	CHECK(set.begin() == set.end());
+}
+
+TEST_CASE("abort_batch recovers a flat_map from a throwing append", "[flat-map]")
+{
+	flat_map<int, throwing_value> map;
+	map.try_emplace(1, 10);
+	map.try_emplace(3, 30);
+
+	map.begin_batch();
+	map.append_unsorted(2, 20);
+	CHECK_THROWS_AS(map.append_unsorted(9, throwing_value::poison), throwing_value::construction_failed);
+	map.abort_batch();
+
+	REQUIRE(map.size() == 2);
+	CHECK(map.at(1).value == 10);
+	CHECK(map.at(3).value == 30);
+	// Appended before the throw, and discarded with the rest of the batch
+	CHECK(map.find(2) == map.end());
+}
+
 TEST_CASE("flat_set appends strictly ordered unique values without consuming rejected values", "[flat-set]")
 {
 	flat_set<move_only_value> set;
