@@ -7,6 +7,7 @@ RESTORE_COMPILER_WARNINGS
 #include "container/flat_map.hpp"
 
 #include <algorithm>
+#include <compare>
 #include <concepts>
 #include <iterator>
 #include <map>
@@ -15,6 +16,7 @@ RESTORE_COMPILER_WARNINGS
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -1320,4 +1322,178 @@ TEST_CASE("end_batch leaves the batch open when it throws", "[flat-map][flat-set
 		CHECK_FALSE(set.batch_open());
 		CHECK((set.keys() == std::vector<int>{ 1, 3 }));
 	}
+}
+
+TEST_CASE("flat containers return an equal range spanning at most one entry", "[flat-map][flat-set]")
+{
+	flat_map<int, int> map{ { 1, 10 }, { 3, 30 }, { 5, 50 } };
+
+	auto [first, last] = map.equal_range(3);
+	CHECK((last - first) == 1);
+	CHECK(first->first == 3);
+	CHECK(first->second == 30);
+	CHECK(last == map.find(5));
+
+	// A miss returns an empty range positioned where the key would go
+	std::tie(first, last) = map.equal_range(4);
+	CHECK(first == last);
+	CHECK(first == map.lower_bound(4));
+	std::tie(first, last) = map.equal_range(0);
+	CHECK(first == last);
+	CHECK(first == map.begin());
+	std::tie(first, last) = map.equal_range(9);
+	CHECK(first == last);
+	CHECK(first == map.end());
+
+	const auto& const_map = map;
+	const auto [const_first, const_last] = const_map.equal_range(5);
+	CHECK((const_last - const_first) == 1);
+	CHECK(const_first->second == 50);
+	CHECK(const_last == const_map.end());
+
+	const flat_map<int, int> empty_map;
+	CHECK(empty_map.equal_range(1).first == empty_map.end());
+
+	flat_set<std::string> set{ "one", "three", "two" };
+	const auto [set_first, set_last] = set.equal_range(std::string_view("three"));
+	CHECK((set_last - set_first) == 1);
+	CHECK(*set_first == "three");
+	CHECK(set.equal_range(std::string_view("four")).first == set.lower_bound(std::string_view("four")));
+}
+
+TEST_CASE("flat containers swap", "[flat-map][flat-set]")
+{
+	flat_map<int, int, directional_less> ascending{ { 1, 10 }, { 2, 20 } };
+	flat_map<int, int, directional_less> descending({ { 1, 10 }, { 2, 20 } }, directional_less{ true });
+	REQUIRE((ascending.keys() == std::vector<int>{ 1, 2 }));
+	REQUIRE((descending.keys() == std::vector<int>{ 2, 1 }));
+
+	SECTION("the member form exchanges contents and comparators")
+	{
+		ascending.swap(descending);
+		CHECK((ascending.keys() == std::vector<int>{ 2, 1 }));
+		CHECK((descending.keys() == std::vector<int>{ 1, 2 }));
+		// The comparator came along, so lookups still work in each container's own order
+		CHECK(ascending.find(2) == ascending.begin());
+		CHECK(descending.find(2) == descending.begin() + 1);
+	}
+
+	SECTION("the free form is found by argument-dependent lookup")
+	{
+		using std::swap;
+		swap(ascending, descending);
+		CHECK((ascending.keys() == std::vector<int>{ 2, 1 }));
+		CHECK((descending.keys() == std::vector<int>{ 1, 2 }));
+	}
+
+	SECTION("flat_set swaps too")
+	{
+		flat_set<int> left{ 1, 2 };
+		flat_set<int> right{ 8, 9 };
+		using std::swap;
+		swap(left, right);
+		CHECK((left.keys() == std::vector<int>{ 8, 9 }));
+		CHECK((right.keys() == std::vector<int>{ 1, 2 }));
+	}
+
+	SECTION("an open batch survives the swap")
+	{
+		flat_set<int> batching{ 1 };
+		flat_set<int> plain{ 5 };
+		batching.begin_batch();
+		batching.append_unsorted(0);
+
+		using std::swap;
+		swap(batching, plain);
+		CHECK_FALSE(batching.batch_open());
+		REQUIRE(plain.batch_open());
+
+		plain.end_batch();
+		CHECK((plain.keys() == std::vector<int>{ 0, 1 }));
+		CHECK((batching.keys() == std::vector<int>{ 5 }));
+	}
+}
+
+TEST_CASE("flat containers order lexicographically", "[flat-map][flat-set]")
+{
+	using map_type = flat_map<int, int>;
+	static_assert(std::three_way_comparable<map_type>);
+	static_assert(std::same_as<decltype(map_type{} <=> map_type{}), std::strong_ordering>);
+
+	SECTION("a differing key decides before any mapped value")
+	{
+		// Comparing the key vectors and then the value vectors would call this greater, not less
+		const map_type left{ { 1, 0 }, { 3, 0 } };
+		const map_type right{ { 1, 5 }, { 2, 0 } };
+		CHECK(left < right);
+		CHECK(right > left);
+	}
+
+	SECTION("a mapped value decides when the keys match")
+	{
+		CHECK((map_type{ { 1, 10 } } < map_type{ { 1, 20 } }));
+		CHECK((map_type{ { 1, 20 } } > map_type{ { 1, 10 } }));
+	}
+
+	SECTION("a prefix is less than the longer container")
+	{
+		CHECK((map_type{ { 1, 10 } } < map_type{ { 1, 10 }, { 2, 20 } }));
+		CHECK((map_type{} < map_type{ { 1, 10 } }));
+		CHECK((map_type{} <=> map_type{}) == std::strong_ordering::equal);
+	}
+
+	SECTION("equivalent containers compare equal and the relational operators agree")
+	{
+		const map_type left{ { 1, 10 }, { 2, 20 } };
+		const map_type right{ { 2, 20 }, { 1, 10 } };
+		CHECK((left <=> right) == std::strong_ordering::equal);
+		CHECK(left <= right);
+		CHECK(left >= right);
+		CHECK_FALSE(left < right);
+		CHECK_FALSE(left > right);
+	}
+
+	SECTION("flat_set orders on keys alone")
+	{
+		CHECK((flat_set<int>{ 1, 2 } < flat_set<int>{ 1, 3 }));
+		CHECK((flat_set<int>{ 1 } < flat_set<int>{ 1, 2 }));
+		CHECK((flat_set<int>{ 2, 1 } <=> flat_set<int>{ 1, 2 }) == std::strong_ordering::equal);
+	}
+
+	SECTION("a mapped type carrying only operator< still orders, through weak_ordering")
+	{
+		using ordered_map = flat_map<int, move_only_value>;
+		static_assert(std::same_as<decltype(std::declval<const ordered_map&>() <=> std::declval<const ordered_map&>()), std::weak_ordering>);
+
+		ordered_map left;
+		ordered_map right;
+		CHECK(left.append_sorted_unique(1, move_only_value(10)));
+		CHECK(right.append_sorted_unique(1, move_only_value(20)));
+		CHECK(left < right);
+	}
+}
+
+TEST_CASE("comparison operators stay out of the way of comparator-only keys", "[flat-map][flat-set]")
+{
+	// ordered_only_key carries none of ==, < or <=>, so the containers must simply not be comparable either way
+	static_assert(!std::three_way_comparable<flat_map<ordered_only_key, int, ordered_only_less>>);
+	static_assert(!std::three_way_comparable<flat_set<ordered_only_key, ordered_only_less>>);
+	static_assert(!std::equality_comparable<flat_map<ordered_only_key, int, ordered_only_less>>);
+	static_assert(!std::equality_comparable<flat_set<ordered_only_key, ordered_only_less>>);
+
+	static_assert(std::equality_comparable<flat_map<int, int>>);
+	static_assert(std::three_way_comparable<flat_map<int, int>>);
+
+	// move_only_value orders with < but carries no ==, so the map orders without being equality comparable
+	using orderable_map = flat_map<int, move_only_value>;
+	static_assert(!std::equality_comparable<orderable_map>);
+	static_assert(!std::three_way_comparable<orderable_map>); // Bundles equality in, so the missing == fails it
+	static_assert(std::same_as<decltype(std::declval<const orderable_map&>() <=> std::declval<const orderable_map&>()), std::weak_ordering>);
+
+	// Still perfectly usable for everything else
+	flat_map<ordered_only_key, int, ordered_only_less> map;
+	map.try_emplace(ordered_only_key{ 2 }, 20);
+	map.try_emplace(ordered_only_key{ 1 }, 10);
+	CHECK(map.size() == 2);
+	CHECK(map.find(ordered_only_key{ 1 })->second == 10);
 }

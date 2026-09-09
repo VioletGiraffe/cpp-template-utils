@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <assert.h>
+#include <compare>
 #include <concepts>
 #include <cstddef>
 #include <functional>
@@ -37,6 +38,29 @@ namespace FlatContainerInternal {
 		else
 			return !compare(query, stored_key); // lower_bound already established !(stored_key < query)
 	}
+
+	template <typename T>
+	concept SynthThreeWayComparable = std::three_way_comparable<T> || requires(const T& left, const T& right) {
+		{ left < right } -> std::convertible_to<bool>;
+	};
+
+	// Mirrors the standard's exposition-only synth-three-way, so a type carrying only operator< still orders
+	template <typename T> requires SynthThreeWayComparable<T>
+	[[nodiscard]] constexpr auto synth_three_way(const T& left, const T& right)
+	{
+		if constexpr (std::three_way_comparable<T>)
+			return left <=> right;
+		else {
+			if (left < right)
+				return std::weak_ordering::less;
+			if (right < left)
+				return std::weak_ordering::greater;
+			return std::weak_ordering::equivalent;
+		}
+	}
+
+	template <typename T>
+	using synth_three_way_result = decltype(synth_three_way(std::declval<const T&>(), std::declval<const T&>()));
 
 	template <typename Key, typename Mapped, typename MappedReference>
 	struct flat_map_reference
@@ -224,11 +248,34 @@ public:
 	[[nodiscard]] bool batch_open() const noexcept { return _batch_start != no_batch; }
 	[[nodiscard]] const Compare& key_comp() const noexcept { return _compare; }
 
+	// Constrained so equality_comparable reports false rather than the body failing on use
 	[[nodiscard]] friend bool operator==(const flat_map& left, const flat_map& right)
+		requires FlatContainerInternal::EqualityComparable<Key, Key> && FlatContainerInternal::EqualityComparable<Mapped, Mapped>
 	{
 		left.assert_not_batching();
 		right.assert_not_batching();
 		return left._keys == right._keys && left._values == right._values;
+	}
+
+	// Lexicographic over (key, mapped) pairs, as std::map orders: Compare arranges storage, it does not order containers
+	// The result type stays out of the signature: naming it would hard-error at instantiation for a comparator-only Key
+	[[nodiscard]] friend auto operator<=>(const flat_map& left, const flat_map& right)
+		requires FlatContainerInternal::SynthThreeWayComparable<Key> && FlatContainerInternal::SynthThreeWayComparable<Mapped>
+	{
+		left.assert_not_batching();
+		right.assert_not_batching();
+
+		using result_type = std::common_comparison_category_t<
+			FlatContainerInternal::synth_three_way_result<Key>, FlatContainerInternal::synth_three_way_result<Mapped>>;
+
+		const auto common_size = std::min(left.size(), right.size());
+		for (size_type index = 0; index < common_size; ++index) {
+			if (const auto keys = FlatContainerInternal::synth_three_way(left._keys[index], right._keys[index]); keys != 0)
+				return static_cast<result_type>(keys);
+			if (const auto values = FlatContainerInternal::synth_three_way(left._values[index], right._values[index]); values != 0)
+				return static_cast<result_type>(values);
+		}
+		return static_cast<result_type>(left.size() <=> right.size());
 	}
 
 	[[nodiscard]] iterator begin() noexcept { assert_not_batching(); return iterator(this, 0); }
@@ -276,6 +323,18 @@ public:
 		_values.shrink_to_fit();
 	}
 
+	// An open batch survives: _batch_start travels with the vectors it indexes into
+	void swap(flat_map& other) noexcept(std::is_nothrow_swappable_v<Compare>)
+	{
+		_keys.swap(other._keys);
+		_values.swap(other._values);
+		using std::swap;
+		swap(_compare, other._compare);
+		std::swap(_batch_start, other._batch_start);
+	}
+
+	friend void swap(flat_map& left, flat_map& right) noexcept(noexcept(left.swap(right))) { left.swap(right); }
+
 	template <typename Query>
 	[[nodiscard]] iterator find(const Query& key)
 	{
@@ -307,6 +366,20 @@ public:
 
 	template <typename Query>
 	[[nodiscard]] const_iterator upper_bound(const Query& key) const { return const_iterator(this, upper_bound_index(key)); }
+
+	template <typename Query>
+	[[nodiscard]] std::pair<iterator, iterator> equal_range(const Query& key)
+	{
+		const auto [first, last] = equal_range_indices(key);
+		return { iterator(this, first), iterator(this, last) };
+	}
+
+	template <typename Query>
+	[[nodiscard]] std::pair<const_iterator, const_iterator> equal_range(const Query& key) const
+	{
+		const auto [first, last] = equal_range_indices(key);
+		return { const_iterator(this, first), const_iterator(this, last) };
+	}
 
 	template <typename Query>
 	[[nodiscard]] mapped_reference at(const Query& key)
@@ -459,6 +532,8 @@ public:
 	void end_batch()
 	{
 		assert(batch_open());
+		// Fails on a moved-from container: the batch index outlives the elements it pointed into
+		assert(_batch_start <= size());
 		const auto batch_start = _batch_start;
 		_batch_start = no_batch;
 		try {
@@ -474,6 +549,8 @@ public:
 	void abort_batch()
 	{
 		assert(batch_open());
+		// Fails on a moved-from container: the batch index outlives the elements it pointed into
+		assert(_batch_start <= size());
 		_keys.erase(_keys.begin() + static_cast<difference_type>(_batch_start), _keys.end());
 		_values.erase(_values.begin() + static_cast<difference_type>(_batch_start), _values.end());
 		_batch_start = no_batch;
@@ -528,6 +605,16 @@ private:
 		if (index < size() && FlatContainerInternal::lower_bound_matches(_keys[index], key, _compare))
 			return { index, index };
 		return { size(), index };
+	}
+
+	// Keys are unique, so the range spans at most one entry and one binary search settles both ends
+	template <typename Query>
+	[[nodiscard]] std::pair<size_type, size_type> equal_range_indices(const Query& key) const
+	{
+		const auto index = lower_bound_index(key);
+		if (index < size() && FlatContainerInternal::lower_bound_matches(_keys[index], key, _compare))
+			return { index, index + 1 };
+		return { index, index };
 	}
 
 	// Never touches _batch_start: end_batch() owns that transition, including restoring it when this throws
@@ -726,11 +813,23 @@ public:
 	[[nodiscard]] const Compare& key_comp() const noexcept { return _compare; }
 	[[nodiscard]] const Compare& value_comp() const noexcept { return _compare; }
 
+	// Constrained so equality_comparable reports false rather than the body failing on use
 	[[nodiscard]] friend bool operator==(const flat_set& left, const flat_set& right)
+		requires FlatContainerInternal::EqualityComparable<Key, Key>
 	{
 		left.assert_not_batching();
 		right.assert_not_batching();
 		return left._keys == right._keys;
+	}
+
+	// Lexicographic over keys, as std::set orders: Compare arranges storage, it does not order containers
+	// The result type stays out of the signature: naming it would hard-error at instantiation for a comparator-only Key
+	[[nodiscard]] friend auto operator<=>(const flat_set& left, const flat_set& right)
+		requires FlatContainerInternal::SynthThreeWayComparable<Key>
+	{
+		left.assert_not_batching();
+		right.assert_not_batching();
+		return left._keys <=> right._keys;
 	}
 
 	[[nodiscard]] const_iterator begin() const noexcept { assert_not_batching(); return _keys.begin(); }
@@ -754,6 +853,17 @@ public:
 	void reserve(size_type count) { _keys.reserve(count); }
 	void shrink_to_fit() { assert_not_batching(); _keys.shrink_to_fit(); }
 
+	// An open batch survives: _batch_start travels with the vector it indexes into
+	void swap(flat_set& other) noexcept(std::is_nothrow_swappable_v<Compare>)
+	{
+		_keys.swap(other._keys);
+		using std::swap;
+		swap(_compare, other._compare);
+		std::swap(_batch_start, other._batch_start);
+	}
+
+	friend void swap(flat_set& left, flat_set& right) noexcept(noexcept(left.swap(right))) { left.swap(right); }
+
 	template <typename Query>
 	[[nodiscard]] const_iterator find(const Query& key) const
 	{
@@ -772,6 +882,13 @@ public:
 
 	template <typename Query>
 	[[nodiscard]] const_iterator upper_bound(const Query& key) const { return _keys.begin() + static_cast<difference_type>(upper_bound_index(key)); }
+
+	template <typename Query>
+	[[nodiscard]] std::pair<const_iterator, const_iterator> equal_range(const Query& key) const
+	{
+		const auto [first, last] = equal_range_indices(key);
+		return { _keys.begin() + static_cast<difference_type>(first), _keys.begin() + static_cast<difference_type>(last) };
+	}
 
 	template <typename KeyArgument>
 	std::pair<const_iterator, bool> insert(KeyArgument&& key)
@@ -867,6 +984,8 @@ public:
 	void end_batch()
 	{
 		assert(batch_open());
+		// Fails on a moved-from container: the batch index outlives the elements it pointed into
+		assert(_batch_start <= size());
 		const auto batch_start = _batch_start;
 		_batch_start = no_batch;
 		try {
@@ -882,6 +1001,8 @@ public:
 	void abort_batch()
 	{
 		assert(batch_open());
+		// Fails on a moved-from container: the batch index outlives the elements it pointed into
+		assert(_batch_start <= size());
 		_keys.erase(_keys.begin() + static_cast<difference_type>(_batch_start), _keys.end());
 		_batch_start = no_batch;
 	}
@@ -922,6 +1043,16 @@ private:
 		if (index < size() && FlatContainerInternal::lower_bound_matches(_keys[index], key, _compare))
 			return { index, index };
 		return { size(), index };
+	}
+
+	// Keys are unique, so the range spans at most one entry and one binary search settles both ends
+	template <typename Query>
+	[[nodiscard]] std::pair<size_type, size_type> equal_range_indices(const Query& key) const
+	{
+		const auto index = lower_bound_index(key);
+		if (index < size() && FlatContainerInternal::lower_bound_matches(_keys[index], key, _compare))
+			return { index, index + 1 };
+		return { index, index };
 	}
 
 	// Never touches _batch_start: end_batch() owns that transition, including restoring it when this throws

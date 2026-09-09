@@ -28,6 +28,8 @@ Both flat containers support ordinary insertion, merging a sorted range, inserti
 
 Key equality uses `operator==` when the compared types provide it and comparator equivalence otherwise. When both are available, they must describe the same equivalence relation.
 
+Comparing two containers ignores `Compare`: `operator==` and `operator<=>` use the stored elements' own `==` and `<=>`, falling back to `<`, as `std::map` and `std::set` do. Each is absent when a stored type lacks the operator it needs, so a comparator-only key leaves the containers neither equality- nor three-way-comparable.
+
 ## Set operations
 
 - `longestCommonStart()` returns the longest shared prefix of a container of ordered containers: `std::vector<std::string>{"Hello", "Heat", "Home"}` produces `"H"`.
