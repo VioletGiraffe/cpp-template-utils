@@ -236,6 +236,11 @@ public:
 	[[nodiscard]] const_iterator end() const noexcept { assert_not_batching(); return const_iterator(this, size()); }
 	[[nodiscard]] const_iterator cend() const noexcept { return end(); }
 
+	// Index-aligned: keys()[i] is the key of values()[i]
+	// Const only: a write through a mutable handle could break the sort order or desynchronize the two vectors
+	[[nodiscard]] const std::vector<Key>& keys() const noexcept { assert_not_batching(); return _keys; }
+	[[nodiscard]] const std::vector<Mapped>& values() const noexcept { assert_not_batching(); return _values; }
+
 	// Ends an open batch as well
 	void clear() noexcept
 	{
@@ -684,6 +689,9 @@ public:
 	[[nodiscard]] const_iterator cbegin() const noexcept { return begin(); }
 	[[nodiscard]] const_iterator end() const noexcept { assert_not_batching(); return _keys.end(); }
 	[[nodiscard]] const_iterator cend() const noexcept { return end(); }
+
+	// Const only: a write through a mutable handle could break the sort order
+	[[nodiscard]] const std::vector<Key>& keys() const noexcept { assert_not_batching(); return _keys; }
 
 	// Ends an open batch as well
 	void clear() noexcept { _keys.clear(); _batch_start = no_batch; }

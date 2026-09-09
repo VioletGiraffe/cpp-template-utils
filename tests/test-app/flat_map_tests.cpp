@@ -14,6 +14,7 @@ RESTORE_COMPILER_WARNINGS
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -594,6 +595,83 @@ TEST_CASE("abort_batch recovers a flat_map from a throwing append", "[flat-map]"
 	CHECK(map.find(2) == map.end());
 }
 
+TEST_CASE("flat_map exposes keys and mapped values as parallel vectors", "[flat-map]")
+{
+	flat_map<int, std::string> map{ { 3, "three" }, { 1, "one" }, { 2, "two" } };
+
+	CHECK((map.keys() == std::vector<int>{ 1, 2, 3 }));
+	CHECK((map.values() == std::vector<std::string>{ "one", "two", "three" }));
+
+	SECTION("a cleared map yields empty views")
+	{
+		map.clear();
+		CHECK(map.keys().empty());
+		CHECK(map.values().empty());
+	}
+
+	SECTION("insertion in the middle keeps the two aligned")
+	{
+		map.try_emplace(0, "zero");
+		map.insert_or_assign(2, "TWO");
+		CHECK((map.keys() == std::vector<int>{ 0, 1, 2, 3 }));
+		CHECK((map.values() == std::vector<std::string>{ "zero", "one", "TWO", "three" }));
+	}
+
+	SECTION("erasure keeps the two aligned")
+	{
+		map.erase(1);
+		CHECK((map.keys() == std::vector<int>{ 2, 3 }));
+		CHECK((map.values() == std::vector<std::string>{ "two", "three" }));
+	}
+
+	SECTION("a merged batch shows up sorted and deduplicated")
+	{
+		map.begin_batch();
+		map.append_unsorted(5, "five");
+		map.append_unsorted(0, "zero");
+		map.append_unsorted(2, "loses to the existing entry");
+		map.end_batch();
+		CHECK((map.keys() == std::vector<int>{ 0, 1, 2, 3, 5 }));
+		CHECK((map.values() == std::vector<std::string>{ "zero", "one", "two", "three", "five" }));
+	}
+
+	SECTION("a value assigned through the map is visible in the view")
+	{
+		map.at(2) = "changed";
+		CHECK(map.values()[1] == "changed");
+	}
+
+	SECTION("the views index in lockstep with iteration")
+	{
+		REQUIRE(map.keys().size() == map.size());
+		REQUIRE(map.values().size() == map.size());
+
+		auto index = flat_map<int, std::string>::size_type{ 0 };
+		for (const auto entry : map) {
+			CHECK(entry.first == map.keys()[index]);
+			CHECK(entry.second == map.values()[index]);
+			++index;
+		}
+	}
+
+	SECTION("the key view is sorted by the map's comparator")
+	{
+		CHECK(std::is_sorted(map.keys().begin(), map.keys().end(), map.key_comp()));
+	}
+}
+
+TEST_CASE("flat_map key and value views are read-only", "[flat-map]")
+{
+	flat_map<int, std::string> map{ { 1, "one" } };
+	static_assert(std::is_same_v<decltype(map.keys()), const std::vector<int>&>);
+	static_assert(std::is_same_v<decltype(map.values()), const std::vector<std::string>&>);
+
+	// vector<bool> is not contiguous: the views must stay vector references, not spans
+	flat_map<int, bool> flags{ { 2, true }, { 1, false } };
+	CHECK((flags.keys() == std::vector<int>{ 1, 2 }));
+	CHECK((flags.values() == std::vector<bool>{ false, true }));
+}
+
 TEST_CASE("flat_set appends strictly ordered unique values without consuming rejected values", "[flat-set]")
 {
 	flat_set<move_only_value> set;
@@ -668,4 +746,35 @@ TEST_CASE("flat_set supports ordinary, sorted bulk, and batch insertion", "[flat
 
 	const std::vector<int> expected{ 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 	CHECK(std::equal(set.begin(), set.end(), expected.begin(), expected.end()));
+}
+
+TEST_CASE("flat_set exposes its keys as a vector", "[flat-set]")
+{
+	flat_set<int> set{ 3, 1, 2 };
+	static_assert(std::is_same_v<decltype(set.keys()), const std::vector<int>&>);
+
+	CHECK((set.keys() == std::vector<int>{ 1, 2, 3 }));
+
+	SECTION("a cleared set yields an empty view")
+	{
+		set.clear();
+		CHECK(set.keys().empty());
+	}
+
+	SECTION("insertion and erasure are reflected in order")
+	{
+		set.insert(0);
+		set.erase(2);
+		CHECK((set.keys() == std::vector<int>{ 0, 1, 3 }));
+	}
+
+	SECTION("a merged batch shows up sorted and deduplicated")
+	{
+		set.begin_batch();
+		set.append_unsorted(5);
+		set.append_unsorted(0);
+		set.append_unsorted(5);
+		set.end_batch();
+		CHECK((set.keys() == std::vector<int>{ 0, 1, 2, 3, 5 }));
+	}
 }
