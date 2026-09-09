@@ -1529,7 +1529,10 @@ TEST_CASE("flat containers construct from a range", "[flat-map][flat-set]")
 	SECTION("an input iterator range works")
 	{
 		std::istringstream numbers{ "4 1 3 1" };
-		const flat_set<int> from_stream{ std::istream_iterator<int>(numbers), std::istream_iterator<int>() };
+		// Named, because flat_set<int> s(istream_iterator<int>(numbers), istream_iterator<int>()) is the most vexing parse
+		const std::istream_iterator<int> first{ numbers };
+		const std::istream_iterator<int> last;
+		const flat_set<int> from_stream(first, last);
 		CHECK((from_stream.keys() == std::vector<int>{ 1, 3, 4 }));
 	}
 }
@@ -1586,5 +1589,56 @@ TEST_CASE("flat containers erase by predicate", "[flat-map][flat-set]")
 		CHECK(movable.at(1).value == 10);
 		CHECK(movable.at(3).value == 30);
 		CHECK(movable.at(5).value == 50);
+	}
+}
+
+TEST_CASE("flat containers deduce their template arguments", "[flat-map][flat-set]")
+{
+	const std::vector<std::pair<int, std::string>> entries{ { 2, "two" }, { 1, "one" } };
+	flat_map deduced_map(entries.begin(), entries.end());
+	static_assert(std::same_as<decltype(deduced_map), flat_map<int, std::string, std::less<>>>);
+	CHECK((deduced_map.keys() == std::vector<int>{ 1, 2 }));
+
+	// A std::map iterator yields pair<const Key, Mapped>, and the const must not reach the deduced key type
+	const std::map<int, std::string> source{ { 2, "two" }, { 1, "one" } };
+	flat_map from_std_map(source.begin(), source.end());
+	static_assert(std::same_as<decltype(from_std_map), flat_map<int, std::string, std::less<>>>);
+	CHECK((from_std_map.values() == std::vector<std::string>{ "one", "two" }));
+
+	flat_map listed_map{ std::pair{ 2, std::string("two") }, std::pair{ 1, std::string("one") } };
+	static_assert(std::same_as<decltype(listed_map), flat_map<int, std::string, std::less<>>>);
+	CHECK((listed_map.keys() == std::vector<int>{ 1, 2 }));
+
+	const std::vector<int> keys{ 3, 1, 2 };
+	flat_set deduced_set(keys.begin(), keys.end());
+	static_assert(std::same_as<decltype(deduced_set), flat_set<int, std::less<>>>);
+	CHECK((deduced_set.keys() == std::vector<int>{ 1, 2, 3 }));
+
+	flat_set listed_set{ 3, 1, 2 };
+	static_assert(std::same_as<decltype(listed_set), flat_set<int, std::less<>>>);
+	CHECK((listed_set.keys() == std::vector<int>{ 1, 2, 3 }));
+
+	SECTION("the deduced comparator stays transparent, so heterogeneous lookup survives deduction")
+	{
+		const std::vector<std::string> names{ "two", "one" };
+		flat_set deduced_names(names.begin(), names.end());
+		static_assert(std::same_as<decltype(deduced_names), flat_set<std::string, std::less<>>>);
+		CHECK(deduced_names.contains(std::string_view("one")));
+
+		const std::vector<std::pair<std::string, int>> pairs{ { "two", 2 }, { "one", 1 } };
+		flat_map deduced_pairs(pairs.begin(), pairs.end());
+		static_assert(std::same_as<decltype(deduced_pairs), flat_map<std::string, int, std::less<>>>);
+		CHECK(deduced_pairs.at(std::string_view("two")) == 2);
+	}
+
+	SECTION("an explicit comparator is deduced alongside the elements")
+	{
+		flat_set descending(keys.begin(), keys.end(), directional_less{ true });
+		static_assert(std::same_as<decltype(descending), flat_set<int, directional_less>>);
+		CHECK((descending.keys() == std::vector<int>{ 3, 2, 1 }));
+
+		flat_map descending_map(entries.begin(), entries.end(), directional_less{ true });
+		static_assert(std::same_as<decltype(descending_map), flat_map<int, std::string, directional_less>>);
+		CHECK((descending_map.keys() == std::vector<int>{ 2, 1 }));
 	}
 }

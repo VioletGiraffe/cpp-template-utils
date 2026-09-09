@@ -62,6 +62,14 @@ namespace FlatContainerInternal {
 	template <typename T>
 	using synth_three_way_result = decltype(synth_three_way(std::declval<const T&>(), std::declval<const T&>()));
 
+	// The deduction guides' key and mapped types, read through .first and .second as insert(first, last) does
+	// remove_const_t matters: a std::map iterator yields pair<const Key, Mapped>
+	template <typename InputIterator>
+	using iterator_key_type = std::remove_const_t<decltype(std::declval<typename std::iterator_traits<InputIterator>::value_type>().first)>;
+
+	template <typename InputIterator>
+	using iterator_mapped_type = decltype(std::declval<typename std::iterator_traits<InputIterator>::value_type>().second);
+
 	template <typename Key, typename Mapped, typename MappedReference>
 	struct flat_map_reference
 	{
@@ -800,6 +808,14 @@ private:
 	size_type _batch_start = no_batch;
 };
 
+// Compare defaults to the class's transparent std::less<>, not to std::map's std::less<key>: deduction keeps heterogeneous lookup
+template <typename InputIterator, typename Compare = std::less<>>
+flat_map(InputIterator, InputIterator, Compare = Compare())
+	-> flat_map<FlatContainerInternal::iterator_key_type<InputIterator>, FlatContainerInternal::iterator_mapped_type<InputIterator>, Compare>;
+
+template <typename Key, typename Mapped, typename Compare = std::less<>>
+flat_map(std::initializer_list<std::pair<Key, Mapped>>, Compare = Compare()) -> flat_map<Key, Mapped, Compare>;
+
 template <typename Key, typename Compare = std::less<>>
 class flat_set
 {
@@ -1166,3 +1182,10 @@ private:
 	// While a batch is open, only the prefix before _batch_start is ordered and searchable.
 	size_type _batch_start = no_batch;
 };
+
+// Compare defaults to the class's transparent std::less<>, not to std::set's std::less<key>: deduction keeps heterogeneous lookup
+template <typename InputIterator, typename Compare = std::less<>>
+flat_set(InputIterator, InputIterator, Compare = Compare()) -> flat_set<typename std::iterator_traits<InputIterator>::value_type, Compare>;
+
+template <typename Key, typename Compare = std::less<>>
+flat_set(std::initializer_list<Key>, Compare = Compare()) -> flat_set<Key, Compare>;
