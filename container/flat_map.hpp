@@ -455,33 +455,18 @@ public:
 	void append_unsorted(value_type&& value) { append_unsorted(std::move(value.first), std::move(value.second)); }
 
 	// Existing entries win a key collision with the appended tail
+	// A throw leaves the batch open: abort_batch() then restores the state from before begin_batch()
 	void end_batch()
 	{
 		assert(batch_open());
 		const auto batch_start = _batch_start;
 		_batch_start = no_batch;
-		if (batch_start == 0) {
-			sort_and_deduplicate();
-			return;
+		try {
+			merge_appended_tail(batch_start);
+		} catch (...) {
+			_batch_start = batch_start;
+			throw;
 		}
-
-		std::vector<size_type> order(size() - batch_start);
-		for (size_type index = 0; index < order.size(); ++index)
-			order[index] = batch_start + index;
-		sort_indices_by_key(order);
-
-		std::vector<Key> incoming_keys;
-		std::vector<Mapped> incoming_values;
-		incoming_keys.reserve(order.size());
-		incoming_values.reserve(order.size());
-		for (const auto index : order) {
-			incoming_keys.emplace_back(std::move(_keys[index]));
-			incoming_values.emplace_back(std::move(_values[index]));
-		}
-
-		_keys.erase(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end());
-		_values.erase(_values.begin() + static_cast<difference_type>(batch_start), _values.end());
-		merge_sorted(std::move(incoming_keys), std::move(incoming_values));
 	}
 
 	// Restores exactly what begin_batch() saw: the appended tail is erased, everything older is kept
@@ -543,6 +528,33 @@ private:
 		if (index < size() && FlatContainerInternal::lower_bound_matches(_keys[index], key, _compare))
 			return { index, index };
 		return { size(), index };
+	}
+
+	// Never touches _batch_start: end_batch() owns that transition, including restoring it when this throws
+	void merge_appended_tail(size_type batch_start)
+	{
+		if (batch_start == 0) {
+			sort_and_deduplicate();
+			return;
+		}
+
+		std::vector<size_type> order(size() - batch_start);
+		for (size_type index = 0; index < order.size(); ++index)
+			order[index] = batch_start + index;
+		sort_indices_by_key(order);
+
+		std::vector<Key> incoming_keys;
+		std::vector<Mapped> incoming_values;
+		incoming_keys.reserve(order.size());
+		incoming_values.reserve(order.size());
+		for (const auto index : order) {
+			incoming_keys.emplace_back(std::move(_keys[index]));
+			incoming_values.emplace_back(std::move(_values[index]));
+		}
+
+		_keys.erase(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end());
+		_values.erase(_values.begin() + static_cast<difference_type>(batch_start), _values.end());
+		merge_sorted(std::move(incoming_keys), std::move(incoming_values));
 	}
 
 	void merge_sorted(std::vector<Key>&& incoming_keys, std::vector<Mapped>&& incoming_values)
@@ -851,22 +863,18 @@ public:
 	}
 
 	// Existing entries win a key collision with the appended tail
+	// A throw leaves the batch open: abort_batch() then restores the state from before begin_batch()
 	void end_batch()
 	{
 		assert(batch_open());
 		const auto batch_start = _batch_start;
 		_batch_start = no_batch;
-		// Stable: deduplication then keeps the earliest of several equivalent appended keys
-		std::stable_sort(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end(), _compare);
-		if (batch_start == 0) {
-			_keys.erase(std::unique(_keys.begin(), _keys.end(),
-				[this](const Key& left, const Key& right) { return FlatContainerInternal::sorted_keys_equal(left, right, _compare); }), _keys.end());
-			return;
+		try {
+			merge_appended_tail(batch_start);
+		} catch (...) {
+			_batch_start = batch_start;
+			throw;
 		}
-
-		std::vector<Key> incoming_keys(std::make_move_iterator(_keys.begin() + static_cast<difference_type>(batch_start)), std::make_move_iterator(_keys.end()));
-		_keys.erase(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end());
-		merge_sorted(std::move(incoming_keys));
 	}
 
 	// Restores exactly what begin_batch() saw: the appended tail is erased, everything older is kept
@@ -914,6 +922,22 @@ private:
 		if (index < size() && FlatContainerInternal::lower_bound_matches(_keys[index], key, _compare))
 			return { index, index };
 		return { size(), index };
+	}
+
+	// Never touches _batch_start: end_batch() owns that transition, including restoring it when this throws
+	void merge_appended_tail(size_type batch_start)
+	{
+		// Stable: deduplication then keeps the earliest of several equivalent appended keys
+		std::stable_sort(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end(), _compare);
+		if (batch_start == 0) {
+			_keys.erase(std::unique(_keys.begin(), _keys.end(),
+				[this](const Key& left, const Key& right) { return FlatContainerInternal::sorted_keys_equal(left, right, _compare); }), _keys.end());
+			return;
+		}
+
+		std::vector<Key> incoming_keys(std::make_move_iterator(_keys.begin() + static_cast<difference_type>(batch_start)), std::make_move_iterator(_keys.end()));
+		_keys.erase(_keys.begin() + static_cast<difference_type>(batch_start), _keys.end());
+		merge_sorted(std::move(incoming_keys));
 	}
 
 	void merge_sorted(std::vector<Key>&& incoming_keys)

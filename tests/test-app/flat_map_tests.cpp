@@ -113,6 +113,21 @@ namespace {
 		bool operator()(const throwing_value& left, const throwing_value& right) const { return left.value < right.value; }
 	};
 
+	struct comparison_failed {};
+
+	// The comparator is the throw site reachable from inside end_batch(), so arming it fails the merge itself
+	struct armable_less
+	{
+		static inline int comparisons_until_throw = -1; // Negative: disarmed
+
+		bool operator()(int left, int right) const
+		{
+			if (comparisons_until_throw >= 0 && comparisons_until_throw-- == 0)
+				throw comparison_failed{};
+			return left < right;
+		}
+	};
+
 } // namespace
 
 TEST_CASE("flat_map supports pair-like random-access iteration", "[flat-map]")
@@ -1259,4 +1274,50 @@ TEST_CASE("flat_set::insert restores the set when an element throws", "[flat-set
 	REQUIRE(set.size() == 2);
 	CHECK(set.begin()->value == 1);
 	CHECK((set.begin() + 1)->value == 3);
+}
+
+TEST_CASE("end_batch leaves the batch open when it throws", "[flat-map][flat-set]")
+{
+	SECTION("flat_map")
+	{
+		flat_map<int, int, armable_less> map;
+		map.try_emplace(1, 10);
+		map.try_emplace(3, 30);
+
+		map.begin_batch();
+		map.append_unsorted(2, 20);
+		map.append_unsorted(4, 40);
+
+		armable_less::comparisons_until_throw = 0;
+		CHECK_THROWS_AS(map.end_batch(), comparison_failed);
+		armable_less::comparisons_until_throw = -1;
+
+		REQUIRE(map.batch_open());
+		map.abort_batch();
+
+		CHECK_FALSE(map.batch_open());
+		CHECK((map.keys() == std::vector<int>{ 1, 3 }));
+		CHECK((map.values() == std::vector<int>{ 10, 30 }));
+	}
+
+	SECTION("flat_set")
+	{
+		flat_set<int, armable_less> set;
+		set.insert(1);
+		set.insert(3);
+
+		set.begin_batch();
+		set.append_unsorted(2);
+		set.append_unsorted(4);
+
+		armable_less::comparisons_until_throw = 0;
+		CHECK_THROWS_AS(set.end_batch(), comparison_failed);
+		armable_less::comparisons_until_throw = -1;
+
+		REQUIRE(set.batch_open());
+		set.abort_batch();
+
+		CHECK_FALSE(set.batch_open());
+		CHECK((set.keys() == std::vector<int>{ 1, 3 }));
+	}
 }
