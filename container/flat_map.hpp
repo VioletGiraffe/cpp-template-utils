@@ -332,6 +332,26 @@ public:
 	std::pair<iterator, bool> insert(const value_type& value) { return try_emplace(value.first, value.second); }
 	std::pair<iterator, bool> insert(value_type&& value) { return try_emplace(std::move(value.first), std::move(value.second)); }
 
+	// Accepts any order: insert_sorted() is the cheaper path for an already-ordered range
+	template <typename InputIterator>
+	void insert(InputIterator first, InputIterator last)
+	{
+		if constexpr (std::forward_iterator<InputIterator>)
+			reserve(size() + static_cast<size_type>(std::distance(first, last)));
+
+		begin_batch();
+		try {
+			for (; first != last; ++first)
+				append_unsorted((*first).first, (*first).second);
+		} catch (...) {
+			abort_batch();
+			throw;
+		}
+		end_batch();
+	}
+
+	void insert(std::initializer_list<value_type> values) { insert(values.begin(), values.end()); }
+
 	// Consumes its arguments only when it inserts: insert_or_assign forwards the same value again after a false result
 	template <typename KeyArgument, typename... MappedArguments>
 	std::pair<iterator, bool> try_emplace(KeyArgument&& key, MappedArguments&&... mapped_arguments)
@@ -752,6 +772,26 @@ public:
 		const auto iterator = _keys.insert(_keys.begin() + static_cast<difference_type>(insertion_index), std::forward<KeyArgument>(key));
 		return { iterator, true };
 	}
+
+	// Accepts any order: insert_sorted() is the cheaper path for an already-ordered range
+	template <typename InputIterator>
+	void insert(InputIterator first, InputIterator last)
+	{
+		if constexpr (std::forward_iterator<InputIterator>)
+			reserve(size() + static_cast<size_type>(std::distance(first, last)));
+
+		begin_batch();
+		try {
+			for (; first != last; ++first)
+				append_unsorted(*first);
+		} catch (...) {
+			abort_batch();
+			throw;
+		}
+		end_batch();
+	}
+
+	void insert(std::initializer_list<value_type> values) { insert(values.begin(), values.end()); }
 
 	const_iterator erase(const_iterator position)
 	{

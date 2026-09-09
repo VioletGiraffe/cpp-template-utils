@@ -11,6 +11,7 @@ RESTORE_COMPILER_WARNINGS
 #include <iterator>
 #include <map>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -105,6 +106,11 @@ namespace {
 		}
 
 		int value;
+	};
+
+	struct throwing_less
+	{
+		bool operator()(const throwing_value& left, const throwing_value& right) const { return left.value < right.value; }
 	};
 
 } // namespace
@@ -763,6 +769,97 @@ TEST_CASE("flat_map exposes the first and last entries", "[flat-map]")
 	}
 }
 
+TEST_CASE("flat_map inserts an unsorted range", "[flat-map]")
+{
+	flat_map<int, std::string> map{ { 2, "existing" }, { 5, "five" } };
+
+	SECTION("the range is sorted and merged, existing entries winning")
+	{
+		const std::vector<std::pair<int, std::string>> incoming{
+			{ 4, "four" }, { 1, "one" }, { 2, "replacement" }, { 4, "second four" }, { 3, "three" }
+		};
+		map.insert(incoming.begin(), incoming.end());
+
+		CHECK((map.keys() == std::vector<int>{ 1, 2, 3, 4, 5 }));
+		CHECK((map.values() == std::vector<std::string>{ "one", "existing", "three", "four", "five" }));
+	}
+
+	SECTION("an empty range changes nothing")
+	{
+		const std::vector<std::pair<int, std::string>> empty;
+		map.insert(empty.begin(), empty.end());
+		CHECK((map.keys() == std::vector<int>{ 2, 5 }));
+	}
+
+	SECTION("a moved-from range hands its values over")
+	{
+		std::vector<std::pair<int, std::string>> incoming{ { 3, "three" }, { 1, "one" } };
+		map.insert(std::make_move_iterator(incoming.begin()), std::make_move_iterator(incoming.end()));
+
+		CHECK((map.keys() == std::vector<int>{ 1, 2, 3, 5 }));
+		CHECK(map.at(3) == "three");
+	}
+
+	SECTION("the single-element overload still resolves")
+	{
+		CHECK(map.insert(std::pair<int, std::string>{ 7, "seven" }).second);
+		CHECK((map.keys() == std::vector<int>{ 2, 5, 7 }));
+	}
+}
+
+TEST_CASE("flat_map::insert restores the map when an element throws", "[flat-map]")
+{
+	flat_map<int, throwing_value> map;
+	map.try_emplace(1, 10);
+	map.try_emplace(3, 30);
+
+	const std::vector<std::pair<int, int>> incoming{ { 2, 20 }, { 4, throwing_value::poison } };
+	CHECK_THROWS_AS(map.insert(incoming.begin(), incoming.end()), throwing_value::construction_failed);
+
+	CHECK_FALSE(map.batch_open());
+	REQUIRE(map.size() == 2);
+	CHECK(map.at(1).value == 10);
+	CHECK(map.at(3).value == 30);
+	// Appended before the throw, and discarded with the rest of the batch
+	CHECK(map.find(2) == map.end());
+}
+
+TEST_CASE("flat_map operator[] inserts on a miss and preserves the value on a hit", "[flat-map]")
+{
+	flat_map<int, int> map;
+
+	CHECK(map[1] == 0); // value-initialized on insertion
+	CHECK(map.size() == 1);
+
+	map[1] = 10;
+	CHECK(map[1] == 10); // a second subscript returns the stored value instead of resetting it
+	CHECK(map.size() == 1);
+
+	map[5] = 50;
+	map[3] = 30;
+	CHECK((map.keys() == std::vector<int>{ 1, 3, 5 }));
+	CHECK((map.values() == std::vector<int>{ 10, 30, 50 }));
+
+	flat_map<std::string, int> keyed;
+	std::string key{ "a key long enough to defeat the small string optimization" };
+	keyed[std::move(key)] = 7;
+	CHECK(keyed.at("a key long enough to defeat the small string optimization") == 7);
+	CHECK(key.empty());
+}
+
+TEST_CASE("flat_map iterators refuse reordering algorithms", "[flat-map]")
+{
+	using iterator = flat_map<int, int>::iterator;
+
+	// Keys stay immutable, so nothing can be assigned through the proxy
+	static_assert(!std::indirectly_writable<iterator, std::pair<int, int>>);
+	static_assert(!std::permutable<iterator>);
+	static_assert(!std::sortable<iterator>);
+
+	static_assert(std::random_access_iterator<iterator>);
+	static_assert(std::indirectly_readable<iterator>);
+}
+
 TEST_CASE("flat_set appends strictly ordered unique values without consuming rejected values", "[flat-set]")
 {
 	flat_set<move_only_value> set;
@@ -902,4 +999,264 @@ TEST_CASE("flat_set exposes the first and last keys", "[flat-set]")
 	const flat_set<int> single{ 7 };
 	CHECK(single.front() == 7);
 	CHECK(single.back() == 7);
+}
+
+TEST_CASE("flat_set inserts an unsorted range", "[flat-set]")
+{
+	flat_set<int> set{ 2, 5 };
+
+	SECTION("the range is sorted, deduplicated and merged")
+	{
+		const std::vector<int> incoming{ 4, 1, 2, 4, 3 };
+		set.insert(incoming.begin(), incoming.end());
+		CHECK((set.keys() == std::vector<int>{ 1, 2, 3, 4, 5 }));
+	}
+
+	SECTION("an empty range changes nothing")
+	{
+		const std::vector<int> empty;
+		set.insert(empty.begin(), empty.end());
+		CHECK((set.keys() == std::vector<int>{ 2, 5 }));
+	}
+
+	SECTION("an input iterator range needs no distance")
+	{
+		std::istringstream numbers{ "4 1 3" };
+		set.insert(std::istream_iterator<int>(numbers), std::istream_iterator<int>());
+		CHECK((set.keys() == std::vector<int>{ 1, 2, 3, 4, 5 }));
+	}
+
+	SECTION("the single-element overload still resolves")
+	{
+		CHECK(set.insert(7).second);
+		CHECK((set.keys() == std::vector<int>{ 2, 5, 7 }));
+	}
+}
+
+TEST_CASE("flat containers answer every lookup on an empty container", "[flat-map][flat-set]")
+{
+	flat_map<int, int> map;
+	CHECK(map.empty());
+	CHECK(map.size() == 0);
+	CHECK(map.begin() == map.end());
+	CHECK(map.cbegin() == map.cend());
+	CHECK(map.rbegin() == map.rend());
+	CHECK(map.find(1) == map.end());
+	CHECK_FALSE(map.contains(1));
+	CHECK(map.count(1) == 0);
+	CHECK(map.lower_bound(1) == map.end());
+	CHECK(map.upper_bound(1) == map.end());
+	CHECK(map.erase(1) == 0);
+	CHECK_THROWS_AS(map.at(1), std::out_of_range);
+	CHECK(map.keys().empty());
+	CHECK(map.values().empty());
+
+	flat_set<int> set;
+	CHECK(set.empty());
+	CHECK(set.size() == 0);
+	CHECK(set.begin() == set.end());
+	CHECK(set.cbegin() == set.cend());
+	CHECK(set.rbegin() == set.rend());
+	CHECK(set.find(1) == set.end());
+	CHECK_FALSE(set.contains(1));
+	CHECK(set.count(1) == 0);
+	CHECK(set.lower_bound(1) == set.end());
+	CHECK(set.upper_bound(1) == set.end());
+	CHECK(set.erase(1) == 0);
+	CHECK(set.keys().empty());
+}
+
+TEST_CASE("clear() ends an open batch", "[flat-map][flat-set]")
+{
+	flat_map<int, int> map{ { 1, 10 } };
+	map.begin_batch();
+	map.append_unsorted(2, 20);
+	REQUIRE(map.batch_open());
+
+	map.clear();
+	CHECK_FALSE(map.batch_open());
+	CHECK(map.empty());
+	// No batch is left open, so the ordered operations are available again
+	map.try_emplace(3, 30);
+	CHECK(map.at(3) == 30);
+
+	flat_set<int> set{ 1 };
+	set.begin_batch();
+	set.append_unsorted(2);
+	REQUIRE(set.batch_open());
+
+	set.clear();
+	CHECK_FALSE(set.batch_open());
+	CHECK(set.empty());
+	CHECK(set.insert(3).second);
+	CHECK(*set.begin() == 3);
+}
+
+TEST_CASE("flat containers erase degenerate ranges", "[flat-map][flat-set]")
+{
+	flat_map<int, int> map{ { 1, 10 }, { 2, 20 }, { 3, 30 } };
+
+	auto position = map.erase(map.begin(), map.begin());
+	CHECK(position == map.begin());
+	CHECK(map.size() == 3);
+
+	position = map.erase(map.end(), map.end());
+	CHECK(position == map.end());
+	CHECK(map.size() == 3);
+
+	position = map.erase(map.begin(), map.end());
+	CHECK(position == map.end());
+	CHECK(map.empty());
+
+	flat_set<int> set{ 1, 2, 3 };
+	CHECK(set.erase(set.begin(), set.begin()) == set.begin());
+	CHECK(set.size() == 3);
+	CHECK(set.erase(set.begin(), set.end()) == set.end());
+	CHECK(set.empty());
+}
+
+TEST_CASE("flat containers handle degenerate batches", "[flat-map][flat-set]")
+{
+	SECTION("every appended key already exists")
+	{
+		flat_map<int, std::string> map{ { 1, "one" }, { 2, "two" } };
+		map.begin_batch();
+		map.append_unsorted(2, "loses");
+		map.append_unsorted(1, "also loses");
+		map.end_batch();
+
+		CHECK((map.keys() == std::vector<int>{ 1, 2 }));
+		CHECK((map.values() == std::vector<std::string>{ "one", "two" }));
+	}
+
+	SECTION("every appended key is the same one")
+	{
+		flat_set<int> set;
+		set.begin_batch();
+		// Past the insertion-sort threshold, so the sort really has to be stable
+		for (int index = 0; index < 40; ++index)
+			set.append_unsorted(7);
+		set.end_batch();
+
+		CHECK((set.keys() == std::vector<int>{ 7 }));
+	}
+
+	SECTION("the batch sorts entirely below the existing prefix")
+	{
+		flat_map<int, int> map{ { 10, 100 }, { 20, 200 } };
+		map.begin_batch();
+		map.append_unsorted(2, 20);
+		map.append_unsorted(1, 10);
+		map.end_batch();
+
+		CHECK((map.keys() == std::vector<int>{ 1, 2, 10, 20 }));
+		CHECK((map.values() == std::vector<int>{ 10, 20, 100, 200 }));
+	}
+
+	SECTION("two batches in sequence")
+	{
+		flat_set<int> set{ 5 };
+		set.begin_batch();
+		set.append_unsorted(3);
+		set.end_batch();
+
+		set.begin_batch();
+		set.append_unsorted(4);
+		set.append_unsorted(3);
+		set.end_batch();
+
+		CHECK((set.keys() == std::vector<int>{ 3, 4, 5 }));
+	}
+}
+
+TEST_CASE("flat containers insert an initializer list", "[flat-map][flat-set]")
+{
+	flat_map<int, std::string> map{ { 2, "existing" } };
+	map.insert({ { 4, "four" }, { 1, "one" }, { 2, "replacement" }, { 4, "second four" } });
+	CHECK((map.keys() == std::vector<int>{ 1, 2, 4 }));
+	CHECK((map.values() == std::vector<std::string>{ "one", "existing", "four" }));
+
+	flat_set<int> set{ 2 };
+	set.insert({ 4, 1, 2, 4 });
+	CHECK((set.keys() == std::vector<int>{ 1, 2, 4 }));
+
+	// A lone element still selects the element overload over the list one
+	CHECK(map.insert(std::pair<int, std::string>{ 9, "nine" }).second);
+	CHECK(set.insert(9).second);
+}
+
+TEST_CASE("flat containers copy and move", "[flat-map][flat-set]")
+{
+	const flat_map<int, std::string> original{ { 2, "two" }, { 1, "one" } };
+
+	flat_map<int, std::string> copied = original;
+	CHECK(copied == original);
+	CHECK_FALSE(copied.batch_open());
+
+	const flat_map<int, std::string> moved = std::move(copied);
+	CHECK(moved == original);
+
+	flat_map<int, std::string> assigned;
+	assigned = original;
+	assigned.try_emplace(3, "three");
+	CHECK(assigned.size() == 3);
+	CHECK(original.size() == 2);
+
+	const flat_set<int> original_set{ 2, 1 };
+	flat_set<int> copied_set = original_set;
+	CHECK(copied_set == original_set);
+
+	const flat_set<int> moved_set = std::move(copied_set);
+	CHECK(moved_set == original_set);
+}
+
+TEST_CASE("flat containers shrink to fit and report their comparators", "[flat-map][flat-set]")
+{
+	flat_map<int, int> map;
+	map.reserve(100);
+	map.try_emplace(1, 10);
+	map.try_emplace(2, 20);
+	map.shrink_to_fit();
+	CHECK((map.keys() == std::vector<int>{ 1, 2 }));
+	CHECK((map.values() == std::vector<int>{ 10, 20 }));
+	CHECK(map.key_comp()(1, 2));
+
+	flat_set<int> set;
+	set.reserve(100);
+	set.insert(1);
+	set.shrink_to_fit();
+	CHECK((set.keys() == std::vector<int>{ 1 }));
+	CHECK(set.key_comp()(1, 2));
+	CHECK(set.value_comp()(1, 2));
+}
+
+TEST_CASE("flat_set supports heterogeneous lookup", "[flat-set]")
+{
+	flat_set<std::string> set{ "one", "three", "two" };
+
+	CHECK(*set.find(std::string_view("two")) == "two");
+	CHECK(set.find(std::string_view("four")) == set.end());
+	CHECK(set.contains(std::string_view("one")));
+	CHECK_FALSE(set.contains(std::string_view("four")));
+	CHECK(set.count(std::string_view("three")) == 1);
+	CHECK(set.count(std::string_view("four")) == 0);
+	CHECK(*set.lower_bound(std::string_view("t")) == "three");
+	CHECK(*set.upper_bound(std::string_view("three")) == "two");
+	CHECK(set.erase(std::string_view("one")) == 1);
+	CHECK(set.size() == 2);
+}
+
+TEST_CASE("flat_set::insert restores the set when an element throws", "[flat-set]")
+{
+	flat_set<throwing_value, throwing_less> set;
+	set.insert(throwing_value(1));
+	set.insert(throwing_value(3));
+
+	const std::vector<int> incoming{ 2, throwing_value::poison };
+	CHECK_THROWS_AS(set.insert(incoming.begin(), incoming.end()), throwing_value::construction_failed);
+
+	CHECK_FALSE(set.batch_open());
+	REQUIRE(set.size() == 2);
+	CHECK(set.begin()->value == 1);
+	CHECK((set.begin() + 1)->value == 3);
 }
