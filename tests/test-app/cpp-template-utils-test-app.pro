@@ -17,8 +17,7 @@ win*{
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus /utf-8
 
 	QMAKE_CXXFLAGS += /Zi /FS /MP
-	QMAKE_CXXFLAGS += /wd4251
-	QMAKE_CXXFLAGS_WARN_ON = /W4
+	QMAKE_CXXFLAGS_WARN_ON = /W4 /wd4251
 
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 
