@@ -14,21 +14,34 @@ mac* | linux* | freebsd {
 }
 
 win*{
-	QMAKE_CXXFLAGS += /permissive- /Zc:__cplusplus
+	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus /utf-8
 
 	QMAKE_CXXFLAGS += /Zi /FS /MP
 	QMAKE_CXXFLAGS += /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = /W4
 
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
+
+	QMAKE_LFLAGS += /DEBUG
+	Release:QMAKE_CXXFLAGS += /GL
+	Release:QMAKE_LFLAGS += /OPT:REF /OPT:ICF /LTCG:INCREMENTAL
 }
 
 linux*|mac*{
-	QMAKE_CXXFLAGS_WARN_ON = -Wall
 	QMAKE_CXXFLAGS += -std=c++2a
 
 	Release:DEFINES += NDEBUG=1
 	Debug:DEFINES += _DEBUG
+}
+
+linux*:Release {
+	QMAKE_CXXFLAGS += -flto=auto
+	QMAKE_LFLAGS   += -flto=auto
+}
+
+mac*:Release {
+	QMAKE_CXXFLAGS += -flto=thin
+	QMAKE_LFLAGS   += -flto=thin
 }
 
 *g++*:QMAKE_CXXFLAGS += -fconcepts
