@@ -27,9 +27,7 @@ win*{
 	Release:QMAKE_LFLAGS += /OPT:REF /OPT:ICF /LTCG:INCREMENTAL
 }
 
-linux*|mac*{
-	QMAKE_CXXFLAGS += -std=c++2a
-
+linux*|mac*|freebsd{
 	Release:DEFINES += NDEBUG=1
 	Debug:DEFINES += _DEBUG
 }
