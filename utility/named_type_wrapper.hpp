@@ -21,5 +21,9 @@ private:
 };
 
 // The tag is part of the type's identity and must hash identically in every TU: never derive it from __COUNTER__ or __FILE__.
+// The same tag in two scopes is the same type: the tag is the name, not the scope.
 #define UniqueNamedType(T, tag) NamedType<T, murmur3_32_consteval(#tag)>
 #define UniqueNamedBoolType(tag) UniqueNamedType(bool, tag)
+
+#define DECLARE_NAMED_TYPE(T, name) using name = UniqueNamedType(T, name)
+#define DECLARE_NAMED_BOOL_TYPE(name) using name = UniqueNamedBoolType(name)
