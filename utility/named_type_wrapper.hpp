@@ -20,5 +20,6 @@ private:
 	T _value{}; // default initialization for class types; zero initialization for primitive type: 'false' for bool, '0' for int etc.
 };
 
-#define UniqueNamedBoolType NamedType<bool, __LINE__>
-#define UniqueNamedType(T) NamedType<T, __LINE__>
+// The tag is part of the type's identity and must hash identically in every TU: never derive it from __COUNTER__ or __FILE__.
+#define UniqueNamedType(T, tag) NamedType<T, murmur3_32_consteval(#tag)>
+#define UniqueNamedBoolType(tag) UniqueNamedType(bool, tag)
