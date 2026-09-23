@@ -12,11 +12,27 @@ DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
 RESTORE_COMPILER_WARNINGS
 
+#include <functional>
+
 // Every runner goes through here, so a hand-written main() cannot forget the diagnostics setup
-[[nodiscard]] inline int runCatchSession(int argc, char* argv[])
+// session: the one instance, for a main() that adds command line options to it
+// beforeRun: called once the command line is parsed, so those options hold their values
+[[nodiscard]] inline int runCatchSession(Catch::Session& session, int argc, char* argv[], const std::function<void()>& beforeRun = {})
 {
 	disableInteractiveDiagnostics();
-	return Catch::Session().run(argc, argv);
+	if (const int returnCode = session.applyCommandLine(argc, argv); returnCode != 0)
+		return returnCode;
+
+	if (beforeRun)
+		beforeRun();
+
+	return session.run();
+}
+
+[[nodiscard]] inline int runCatchSession(int argc, char* argv[])
+{
+	Catch::Session session;
+	return runCatchSession(session, argc, argv);
 }
 
 #ifndef NO_TEST_MAIN

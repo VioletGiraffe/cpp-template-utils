@@ -68,3 +68,9 @@ Header-only C++20 utility library covering generic containers, compile-time prog
 | `utility/odd_sized_integer.hpp` | Comparable unsigned integer stored in any byte width from 1 through 8. |
 | `utility/on_scope_exit.hpp` | `EXEC_ON_SCOPE_EXIT`, an RAII scope-exit callback with an automatically unique local name. |
 | `utility/static_data_buffer.hpp` | Fixed-capacity byte buffer with logical size, cursor, seek, bounded read/write, direct data access, and range iteration. |
+
+### Catch2 support
+
+| Header | Facility |
+|---|---|
+| `3rdparty/catch2/test_main.hpp` | A test binary's `main()`, running Catch2 with interactive failure dialogs disabled. With `NO_TEST_MAIN`, a hand-written `main()` calls `runCatchSession()`, optionally with its own `Catch::Session` for extra command line options. |
