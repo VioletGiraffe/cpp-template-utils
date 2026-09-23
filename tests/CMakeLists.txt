@@ -43,7 +43,7 @@ if (MSVC)
 	target_compile_options(${TARGET_NAME} PRIVATE /permissive- /Zc:__cplusplus /MP /W4)
 	target_compile_definitions(${TARGET_NAME} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-	target_compile_options(${TARGET_NAME} PRIVATE -Wall)
+	target_compile_options(${TARGET_NAME} PRIVATE -Wall $<$<CXX_COMPILER_ID:GNU>:-Wno-maybe-uninitialized>) # False positives on std::optional and std::expected
 	target_compile_definitions(${TARGET_NAME} PRIVATE $<$<CONFIG:Debug>:_DEBUG>)
 endif()
 
