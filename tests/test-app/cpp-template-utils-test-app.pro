@@ -67,4 +67,5 @@ SOURCES += \
 	extra_type_traits_tests.cpp \
 	parameter_pack_tests.cpp \
 	tuple_helpers_tests.cpp \
-	wheathash_tests.cpp
+	wheathash_tests.cpp \
+	heap_optional_tests.cpp

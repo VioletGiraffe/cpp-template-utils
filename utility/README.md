@@ -8,6 +8,7 @@ Compile-time, representation, lifetime, runtime, and preprocessor helpers that d
 | `callback_caller.hpp` | Non-owning subscriber registry with add/remove and interface-method broadcast. By-value arguments remain intact for every subscriber and are moved only into the final call. |
 | `constexpr_algorithms.hpp` | `consteval_for`, fold-based `constexpr_for_fold`/`static_for`, and dispatch from a bounded runtime value to a non-type template argument. |
 | `extra_type_traits.hpp` | Traits for trivial byte serialization, cv/ref removal, specialization detection, member-pointer value type, equality comparability, and random-access sortable containers. |
+| `heap_optional.hpp` | `heap_optional<T>`: an optional value on the heap, one pointer wide whether or not it holds a value. Copies deep-copy, `==` compares values, and a moved-from object is empty. |
 | `integer_literals.hpp` | `_u64`, `_i64`, `_u16`, `_i16`, and `_z` fixed-type integer literal suffixes. |
 | `interactive_diagnostics.hpp` | `disableInteractiveDiagnostics()` sends MSVC assertion failures and aborts to stderr rather than a modal dialog, which an unattended run would hang on. Empty elsewhere. |
 | `macro_utils.h` | Expansion-aware two/three-token concatenation and stringification macros. |

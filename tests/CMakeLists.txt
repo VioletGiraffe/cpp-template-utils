@@ -27,6 +27,7 @@ add_executable(${TARGET_NAME}
 	test-app/parameter_pack_tests.cpp
 	test-app/tuple_helpers_tests.cpp
 	test-app/wheathash_tests.cpp
+	test-app/heap_optional_tests.cpp
 )
 
 target_compile_features(${TARGET_NAME} PRIVATE cxx_std_20)

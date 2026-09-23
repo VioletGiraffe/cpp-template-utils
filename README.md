@@ -61,6 +61,7 @@ Header-only C++20 utility library covering generic containers, compile-time prog
 |---|---|
 | `utility/aligned_wrapper.hpp` | Explicitly aligned value wrapper and platform-sized `CacheLinePadded` alias. |
 | `utility/callback_caller.hpp` | Non-owning multi-subscriber registry that invokes an interface method for every subscriber without prematurely moving by-value arguments. |
+| `utility/heap_optional.hpp` | `heap_optional<T>`, an optional value stored on the heap: one pointer wide, deep-copying, compared by value. |
 | `utility/integer_literals.hpp` | `_u64`, `_i64`, `_u16`, `_i16`, and `_z` fixed-type integer literals. |
 | `utility/memory_cast.hpp` | Checked reinterpretation between trivially serializable representations, constant-evaluable for a value source, and whole-object zeroing. |
 | `utility/named_type_wrapper.hpp` | Lightweight strong-ish named wrapper for trivial values, with macros declaring named types tagged by their own name. |
