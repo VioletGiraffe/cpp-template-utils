@@ -73,4 +73,4 @@ Header-only C++20 utility library covering generic containers, compile-time prog
 
 | Header | Facility |
 |---|---|
-| `3rdparty/catch2/test_main.hpp` | A test binary's `main()`, running Catch2 with interactive failure dialogs disabled. With `NO_TEST_MAIN`, a hand-written `main()` calls `runCatchSession()`, optionally with its own `Catch::Session` for extra command line options. |
+| `3rdparty/catch2/test_main.hpp` | A test binary's `main()`, running Catch2 with interactive failure dialogs and Windows power throttling disabled. With `NO_TEST_MAIN`, a hand-written `main()` calls `runCatchSession()`, optionally with its own `Catch::Session` for extra command line options. |

@@ -17,6 +17,7 @@ Compile-time, representation, lifetime, runtime, and preprocessor helpers that d
 | `odd_sized_integer.hpp` | Comparable unsigned integer stored in any native-representation width from one through eight bytes. |
 | `on_scope_exit.hpp` | `EXEC_ON_SCOPE_EXIT` creates a non-movable RAII callback whose automatically generated local name is unique per source line. |
 | `optional_consteval.hpp` | Optional-like value whose construction and access are restricted to constant evaluation. |
+| `power_throttling.hpp` | `disablePowerThrottling()` exempts the process from Windows power throttling, which moves an unfocused process to efficiency cores and skews benchmarks. Empty elsewhere. |
 | `static_data_buffer.hpp` | Fixed-capacity byte buffer with logical size, cursor, seek, bounded read/write, direct data access, and range iteration. |
 | `template_magic.hpp` | Intentional compile-failure macros, `sfinae` alias, compile-time type printer, and overload-set builder for visitors. |
 
