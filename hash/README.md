@@ -5,6 +5,7 @@ Compile-time and runtime non-cryptographic hashing helpers. These functions are 
 | Header | Facility |
 |---|---|
 | `hash_consteval.hpp` | `murmur3_32_consteval()` computes seedable MurmurHash3 x86-32 for a `std::string_view` during constant evaluation. Byte assembly is explicitly little-endian, so results are stable across host architectures. |
+| `hash_functors.hpp` | Hash-table functors for 64-bit integer keys: `identity_hash` for keys that are already hashes, `moremur_hash` for keys that need `mix_moremur()`. Both are marked avalanching, so `ankerl::unordered_dense` and `boost::unordered` skip their own mixing. |
 | `mixers.h` | `mix_moremur()` avalanches one 64-bit integer, useful for finalizing or decorrelating an already assembled key. |
 | `wheathash.hpp` | `wheathash64()` hashes a byte range with a fixed or caller-supplied seed; `wheathash32()` truncates it to 32 bits, and `wheathash64v()` hashes an object's in-memory representation. |
 
