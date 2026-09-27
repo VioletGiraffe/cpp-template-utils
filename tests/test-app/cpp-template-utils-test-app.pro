@@ -44,9 +44,11 @@ mac*:Release {
 *g++*:QMAKE_CXXFLAGS += -fconcepts
 *g++*:QMAKE_CXXFLAGS_WARN_ON += -Wno-maybe-uninitialized # False positives on std::optional and std::expected
 
-DEFINES += CATCH_CONFIG_ENABLE_BENCHMARKING
-
 INCLUDEPATH += $${PWD}/../../
+
+Release:OUTPUT_DIR=release
+Debug:OUTPUT_DIR=debug
+include(../../3rdparty/catch2/catch2.pri)
 
 # ../CMakeLists.txt builds the same list and must be updated alongside this one
 SOURCES += \

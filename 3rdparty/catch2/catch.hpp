@@ -10,6 +10,12 @@
  */
 #ifndef TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
 #define TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
+
+// Local change, not upstream: benchmarking is always on, so every source and catch2_runner agree on Catch2's classes
+#ifndef CATCH_CONFIG_ENABLE_BENCHMARKING
+#define CATCH_CONFIG_ENABLE_BENCHMARKING
+#endif
+
 // start catch.hpp
 
 

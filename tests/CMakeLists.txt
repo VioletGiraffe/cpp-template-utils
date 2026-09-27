@@ -5,7 +5,9 @@ project(cpp-template-utils-tests LANGUAGES CXX)
 
 set(TARGET_NAME tests)
 
-# The library under test is header-only, so there is nothing to build besides this executable.
+# The library under test is header-only; catch2_runner is the one other target, and these tests are the check of its project
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../3rdparty/catch2 ${CMAKE_CURRENT_BINARY_DIR}/catch2_runner)
+
 # Listed in the order of SOURCES in test-app/cpp-template-utils-test-app.pro, which must hold the same files.
 # test-app/tracking_allocator.cpp is in neither list: work in progress, deliberately not built.
 add_executable(${TARGET_NAME}
@@ -37,8 +39,7 @@ set_target_properties(${TARGET_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 # Test sources include through the library root: "container/flat_map.hpp", "3rdparty/catch2/catch.hpp"
 target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/..)
 
-# chunked_deque_benchmarks.cpp needs Catch2's benchmarking support
-target_compile_definitions(${TARGET_NAME} PRIVATE CATCH_CONFIG_ENABLE_BENCHMARKING)
+target_link_libraries(${TARGET_NAME} PRIVATE catch2_runner)
 
 if (MSVC)
 	target_compile_options(${TARGET_NAME} PRIVATE /permissive- /Zc:__cplusplus /MP /W4)

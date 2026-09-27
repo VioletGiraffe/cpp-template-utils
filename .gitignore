@@ -4,6 +4,8 @@
 /.qmake.stash
 /Makefile
 /Makefile.*
+/3rdparty/catch2/Makefile
+/3rdparty/catch2/Makefile.*
 .vs/
 /tests/bin/
 *.vcxproj
