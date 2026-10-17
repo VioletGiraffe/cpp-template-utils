@@ -17,9 +17,10 @@ exists(../../../global.pri) {
 	include(../../../global.pri)
 } else {
 	CONFIG += c++2b
-	# power_throttling.hpp includes Windows.h ahead of catch.hpp
-	win*:DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 }
+
+# power_throttling.hpp includes Windows.h ahead of catch.hpp. Set here: a parent's global.pri need not define these.
+win*:DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 
 # global.pri's LTO removed: the test binaries link without it
 # MSVC keeps /GL: the tests linking this library link with LTCG
