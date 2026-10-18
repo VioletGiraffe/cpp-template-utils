@@ -7,6 +7,10 @@
 #include <functional>
 #include <stdint.h>
 
+namespace Catch {
+	class Session;
+}
+
 struct CatchRunOptions {
 	// Set: adds the --std-seed option, bound to *randomSeed
 	uint32_t* randomSeed = nullptr;
@@ -14,5 +18,7 @@ struct CatchRunOptions {
 	std::function<void()> beforeRun;
 };
 
-// Every runner goes through here, so a hand-written main() cannot forget the process setup
+// Every runner goes through one of these, so a hand-written main() cannot forget the process setup
 [[nodiscard]] int runCatchSession(int argc, char* argv[], const CatchRunOptions& options = {});
+// session must be the binary's only Catch::Session, with any extra command line options already added to its cli()
+[[nodiscard]] int runCatchSession(Catch::Session& session, int argc, char* argv[], const CatchRunOptions& options = {});

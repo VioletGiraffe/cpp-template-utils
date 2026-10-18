@@ -14,10 +14,15 @@ RESTORE_COMPILER_WARNINGS
 
 int runCatchSession(int argc, char* argv[], const CatchRunOptions& options)
 {
+	Catch::Session session;
+	return runCatchSession(session, argc, argv, options);
+}
+
+int runCatchSession(Catch::Session& session, int argc, char* argv[], const CatchRunOptions& options)
+{
 	disableInteractiveDiagnostics();
 	disablePowerThrottling();
 
-	Catch::Session session; // There must be exactly one instance
 	if (options.randomSeed)
 		session.cli(session.cli() | Catch::clara::Opt(*options.randomSeed, "std::random seed")["--std-seed"]("std::random seed"));
 
