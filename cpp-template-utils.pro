@@ -24,4 +24,5 @@ HEADERS += \
 	$$files(utility/*.h*, false) \
 	hash/hash_consteval.hpp \
 	hash/mixers.h \
+	hash/rapidhash.h \
 	utility/aligned_wrapper.hpp

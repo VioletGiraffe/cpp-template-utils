@@ -44,6 +44,7 @@ Header-only C++20 utility library covering generic containers, compile-time prog
 |---|---|
 | `hash/hash_consteval.hpp` | Seedable compile-time MurmurHash3 x86-32 for string views. |
 | `hash/mixers.h` | `mix_moremur()`, a fast 64-bit integer finalizer/mixer. |
+| `hash/rapidhash.hpp` | Seeded or default-seed 64-bit rapidhash for byte ranges and whole object representations. |
 | `hash/wheathash.hpp` | Seeded or fixed-seed 32/64-bit wheathash for byte ranges and whole object representations. |
 | `math/math.hpp` | Typed rounding/floor/ceil, safe integral and floating absolute value, clamp/sign/square/range helpers, arithmetic/geometric means, powers of two, range reduction, and precomputed fast 32-bit modulo. |
 | `random/randomnumbergenerator.h` | Explicitly seeded generator-plus-distribution wrapper, thread-local static ranged RNG facade seeding each thread apart from the others, and printable-character specialization. |

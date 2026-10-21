@@ -29,6 +29,7 @@ add_executable(${TARGET_NAME}
 	test-app/parameter_pack_tests.cpp
 	test-app/tuple_helpers_tests.cpp
 	test-app/wheathash_tests.cpp
+	test-app/rapidhash_tests.cpp
 	test-app/heap_optional_tests.cpp
 )
 
