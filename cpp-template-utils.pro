@@ -13,16 +13,13 @@ CONFIG += strict_c++ c++2a
 HEADERS += \
 	$$files(compiler/*.h*, false) \
 	$$files(container/*.hpp, false) \
-	$$files(hash/*.hpp, false) \
+	$$files(hash/*.h*, false) \
 	$$files(lang/*.hpp, false) \
 	$$files(math/*.hpp, false) \
 	$$files(parameter_pack/*.hpp, false) \
-	$$files(random/*.hpp, false) \
+	$$files(random/*.h*, false) \
 	$$files(regex/*.hpp, false) \
 	$$files(string/*.hpp, false) \
 	$$files(tuple/*.hpp, false) \
 	$$files(utility/*.h*, false) \
-	hash/hash_consteval.hpp \
-	hash/mixers.h \
-	hash/rapidhash.h \
-	utility/aligned_wrapper.hpp
+	3rdparty/catch2/test_main.hpp
