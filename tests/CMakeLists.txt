@@ -31,6 +31,7 @@ add_executable(${TARGET_NAME}
 	test-app/wheathash_tests.cpp
 	test-app/rapidhash_tests.cpp
 	test-app/heap_optional_tests.cpp
+	test-app/random_tests.cpp
 )
 
 target_compile_features(${TARGET_NAME} PRIVATE cxx_std_20)

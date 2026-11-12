@@ -71,4 +71,5 @@ SOURCES += \
 	tuple_helpers_tests.cpp \
 	wheathash_tests.cpp \
 	rapidhash_tests.cpp \
-	heap_optional_tests.cpp
+	heap_optional_tests.cpp \
+	random_tests.cpp

@@ -40,23 +40,42 @@ namespace rng_detail {
 		static std::atomic<uint64_t> counter{ 0 };
 		return mix_moremur(counter.fetch_add(1, std::memory_order_relaxed));
 	}
+
+	// Differs between processes and runs: std::random_device reads the operating system's entropy source
+	// Throws when the platform has no entropy source
+	[[nodiscard]] inline uint64_t entropySeed()
+	{
+		std::random_device device;
+		const uint64_t high = device();
+		return (high << 32) | device();
+	}
+
+	// One generator per thread and per specialization, seeded by seedFunction when the thread first draws
+	template <typename IntType, auto minValue, auto maxValue, template <typename> class DistributionT, typename GeneratorT, auto seedFunction>
+	struct SeededRNG {
+		// minValue and maxValue are deduced independently of IntType: the conversion can change the value before the distribution sees it
+		static_assert(static_cast<decltype(minValue)>(static_cast<IntType>(minValue)) == minValue, "minValue must be representable in IntType");
+		static_assert(static_cast<decltype(maxValue)>(static_cast<IntType>(maxValue)) == maxValue, "maxValue must be representable in IntType");
+		static_assert(static_cast<IntType>(minValue) <= static_cast<IntType>(maxValue), "minValue must not exceed maxValue");
+
+		static IntType next() noexcept(noexcept(seedFunction()))
+		{
+			using SeedType = typename GeneratorT::result_type;
+
+			static thread_local RandomNumberGenerator<IntType, DistributionT, GeneratorT> rng{ static_cast<SeedType>(seedFunction()), minValue, maxValue };
+			return rng.rand();
+		}
+	};
 } // namespace rng_detail
 
+// Seeded from a counter: every process draws the same sequences, threads taking seeds in the order they first draw
 template <typename IntType, auto minValue = (std::numeric_limits<IntType>::min)(), auto maxValue = (std::numeric_limits<IntType>::max)(), template <typename> class DistributionT = std::uniform_int_distribution, typename GeneratorT = std::mt19937_64>
-struct RNG {
-	// minValue and maxValue are deduced independently of IntType: the conversion can change the value before the distribution sees it
-	static_assert(static_cast<decltype(minValue)>(static_cast<IntType>(minValue)) == minValue, "minValue must be representable in IntType");
-	static_assert(static_cast<decltype(maxValue)>(static_cast<IntType>(maxValue)) == maxValue, "maxValue must be representable in IntType");
-	static_assert(static_cast<IntType>(minValue) <= static_cast<IntType>(maxValue), "minValue must not exceed maxValue");
+using RNG = rng_detail::SeededRNG<IntType, minValue, maxValue, DistributionT, GeneratorT, rng_detail::nextSeed>;
 
-	static IntType next() noexcept
-	{
-		using SeedType = typename GeneratorT::result_type;
-
-		static thread_local RandomNumberGenerator<IntType, DistributionT, GeneratorT> rng{ static_cast<SeedType>(rng_detail::nextSeed()), minValue, maxValue };
-		return rng.rand();
-	}
-};
+// Seeded from the operating system's entropy source: every process and run draws different sequences.
+// For values that must not repeat across processes, such as identifiers several instances persist to one store.
+template <typename IntType, auto minValue = (std::numeric_limits<IntType>::min)(), auto maxValue = (std::numeric_limits<IntType>::max)(), template <typename> class DistributionT = std::uniform_int_distribution, typename GeneratorT = std::mt19937_64>
+using EntropySeededRNG = rng_detail::SeededRNG<IntType, minValue, maxValue, DistributionT, GeneratorT, rng_detail::entropySeed>;
 
 // Not char: one-byte types are invalid for the standard distributions, see RandomNumberGenerator's static_assert
 using RandomChar = RNG<int16_t, 33, 126>;
